@@ -4,8 +4,23 @@
 
 
 int main (int argc, char* args[]){
+    int serverPipe;
 
+    if (argc != 2)
+    {
+        printf("Tem de indicar o nome do utilizador\n");
+        return 20;
+    }
+    
+    serverPipe = open(SERVER_PIPE,O_WRONLY);
 
+    if (serverPipe == -1)
+    {
+        printf("O servidor manager não se encontra em funcionamento...\n");
+        return 19;
+    }
+    
+    
 
     Menu();
 
