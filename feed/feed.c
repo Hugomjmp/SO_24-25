@@ -5,7 +5,7 @@
 
 int main (int argc, char* args[]){
     int serverPipe;
-
+    
     if (argc != 2)
     {
         printf("Tem de indicar o nome do utilizador\n");
@@ -22,9 +22,18 @@ int main (int argc, char* args[]){
     
     
 
+    
+
+    ClienteDados cd;
+    strcpy(cd.nome, args[1]);
+    cd.PID = getpid();
+    
+    write(serverPipe, &cd, sizeof(ClienteDados));
+
+
+    
+
     Menu();
-
-
 
 
 
