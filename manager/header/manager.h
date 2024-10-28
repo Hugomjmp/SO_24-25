@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
-
+#include <signal.h>
 
 
 
@@ -15,6 +15,8 @@
 #define MAX_USERS 10
 #define MAX_TOPICOS 20
 #define MAX_MSG_PERSISTENTES 5
+#define MAX_CARACTER_TOPICO 20
+#define MAX_CARACTER_MENSAGEM 300
 #define SERVER_PIPE "../SERVER"
 
 //estruturas...
@@ -33,18 +35,19 @@ typedef struct
 
 typedef struct
 {
-    //int pipe;
-    ClienteDados *cd[MAX_USERS];
+    int pipeServer;
+    ClienteDados cd[MAX_USERS];
+    
     int continua;
+    
 }ThreadData;
-
 
 
 
 void Menu();
 void trataComandos(ThreadData *td);
 void mostraClientes(ThreadData *td);
-void incializaTabelaClientes(ClienteDados *cd);
+void incializaTabelaClientes(ThreadData *td);
 
 //threads
 void *trataClientes(void *cdp);

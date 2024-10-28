@@ -1,17 +1,22 @@
 #include "./header/feed.h"
 
 
-
-
 int main (int argc, char* args[]){
-    int serverPipe;
-    
+    int serverPipe, clientePipe;
+    char* nomePipe[100];
+    ClienteDados cd;
+
+    struct sigaction sa;
+    sa.sa_sigaction = userRemovido;
+    sa.sa_flags = SA_SIGINFO;
+    sigaction(SIGUSR1, &sa, NULL);
+
     if (argc != 2)
     {
         printf("Tem de indicar o nome do utilizador\n");
         return 20;
     }
-    
+
     serverPipe = open(SERVER_PIPE,O_WRONLY);
 
     if (serverPipe == -1)
@@ -19,24 +24,24 @@ int main (int argc, char* args[]){
         printf("O servidor manager não se encontra em funcionamento...\n");
         return 19;
     }
-    
-    
-
-    
-
-    ClienteDados cd;
     strcpy(cd.nome, args[1]);
     cd.PID = getpid();
-    
     write(serverPipe, &cd, sizeof(ClienteDados));
-
-
     
 
+    
+    snprintf(nomePipe, sizeof(nomePipe), CLIENTE_PIPE"_%d", cd.PID);
+    printf("%s",nomePipe);
+    clientePipe = mkfifo(nomePipe, 0666);
+    
+
+    
     Menu();
+    while(1)
+    {
 
-
-
+    }
+    
 
 
 
@@ -50,6 +55,14 @@ int main (int argc, char* args[]){
 }
 
 
+//Alertar o utilizador que foi removido
+void userRemovido(int valor, siginfo_t *si, void *u){
+    printf("fui chamado com valor '%d'",si->si_value.sival_int);
+}
+
+
+/*TODO*/
+//Colocar o Sigque a funcionar...
 void Menu(){
     printf("\t\e[0;32m+---------------------------------------------------------------------------------+\e[0m\n");
     printf("\t\e[0;32m|                              FEED - MENU                                        |\e[0m\n");

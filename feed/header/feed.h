@@ -1,11 +1,19 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
+
+
+
+//defines
+#define SERVER_PIPE "../SERVER"
+#define CLIENTE_PIPE "../CLIENTE"
 //estruturas...
 typedef struct
 {
@@ -13,8 +21,13 @@ typedef struct
     int PID;
 }ClienteDados;
 
-//defines
+//struct sinais
+typedef struct
+{
+    int sinal;
+}SinalData;
 
-#define SERVER_PIPE "../SERVER"
+
 
 void Menu();
+void userRemovido(int valor, siginfo_t *si, void *u);

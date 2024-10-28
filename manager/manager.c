@@ -5,10 +5,9 @@
 int main(int argc, char* args[]){
     pthread_t tid_trataCliente;
     int serverPipe;
-    ClienteDados cd[MAX_USERS];
-    
-    ThreadData td = {.cd = cd};
-    incializaTabelaClientes(cd);
+    //ClienteDados cd[MAX_USERS];
+    ThreadData td; //= {.cd = cd};
+    incializaTabelaClientes(&td);
 
 
 
@@ -16,38 +15,34 @@ int main(int argc, char* args[]){
     // {
         
     // }
-    
-    pthread_create(&tid_trataCliente,NULL,trataClientes,(void *) &cd);
-    
     serverPipe = mkfifo(SERVER_PIPE, 0666);
-
-   
-
     if (serverPipe == -1)
     {
         printf("[ERRO] Criar o namedpipe...\n");
         return 19;
     }
     serverPipe = open(SERVER_PIPE, O_RDONLY);
+    td.pipeServer = serverPipe;
     td.continua = 1;
-    while (td.continua == 1) // mudar isto depois para sair com o close
-    {
-        printf("%d", td.continua);
-        read(serverPipe, &cd[0],sizeof(ClienteDados));
-        
-        printf("RECEBI: '%s' com PID '%d'", cd[0].nome, cd[0].PID);
-        close(serverPipe);
-        Menu();
-        trataComandos(&td);
-        
+
+    pthread_create(&tid_trataCliente,NULL,trataClientes,(void *) &td); //thread para tratar clientes
     
 
+    
+
+
+    while (td.continua == 1) //tratamento dos comandos
+    {
+        //printf("%d", td.continua);
+        Menu();
+        trataComandos(&td);
     }
     
     
     
 
     close(serverPipe);
+    unlink(SERVER_PIPE);
     pthread_join(tid_trataCliente, NULL);
     return 1;
 
@@ -56,22 +51,27 @@ int main(int argc, char* args[]){
 void trataComandos(ThreadData* td){
     char comando[100];
     Clientes c;
+    union sigval sv;
 
     fgets(comando, sizeof(comando), stdin);
+    comando[strcspn(comando, "\n")] = 0;
     //pthread_create(&th1,NULL,)
-    if (strcmp(comando,"users"))
+    if (strcmp(comando,"users") == 0)
     {
         printf("[RECEBI] %s\n",comando);
-        mostraClientes(&td);
-    }else if(strcmp(comando,"remove")){
+        mostraClientes(td);
+    }else if(strcmp(comando,"remove") == 0){
+        sv.sival_int = 20;
+        printf("'%d'", td->cd[0].PID);
+        sigqueue(td->cd[0].PID, SIGUSR1, sv);
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"topics")){
+    }else if(strcmp(comando,"topics") == 0){
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"show")){
+    }else if(strcmp(comando,"show") == 0){
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"lock")){
+    }else if(strcmp(comando,"lock") == 0){
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"close")){
+    }else if(strcmp(comando,"close") == 0){
         printf("[RECEBI] %s\n",comando);
         td->continua = 0;
     }
@@ -98,12 +98,20 @@ void Menu(){
 
 
 
-void *trataClientes(void *cdp){
-    ClienteDados *cd = (ClienteDados*) cdp;
-    
-
-
-
+void *trataClientes(void *tdp){
+    ThreadData *td = (ThreadData*) tdp;
+    ClienteDados cd[MAX_USERS];
+    int i = 0;
+    //printf("olá sou uma thread \n");
+    while (td->continua == 1)
+    {
+        read(td->pipeServer, &cd[i], sizeof(ClienteDados));
+        //printf("RECEBI: '%s' com PID '%d'", cd[i].nome, cd[i].PID);
+        fflush(stdout);
+        strcpy(td->cd[i].nome,cd[i].nome);
+        td->cd[i].PID = cd[i].PID;
+        i++; // não esquecer que não pode passar do max_users
+    }
     
 }
 
@@ -111,21 +119,20 @@ void *trataClientes(void *cdp){
 void mostraClientes(ThreadData *td){
     printf("\t+----------------------+\n");
     printf("\t| Nome \t | Process ID |\n");
+    printf("\t+----------------------+\n");
     for (int i = 0; i < MAX_USERS; i++)
     {
-        printf("\t| %s | %d |\n" ,td->cd[i]->nome, td->cd[i]->PID);
+        printf("\t| %s \t | %d |\n" ,td->cd[i].nome, td->cd[i].PID);
         printf("\t+----------------------+\n");
     }
-
-
 }
 
-void incializaTabelaClientes(ClienteDados *cd){
+void incializaTabelaClientes(ThreadData *td){
 
 for (int i = 0; i < MAX_USERS; i++)
 {
-    cd[i].PID = 0;
-    strcpy(cd[i].nome,"-1");
+    td->cd[i].PID = 0;
+    strcpy(td->cd[i].nome,"-1");
 }
 
 
