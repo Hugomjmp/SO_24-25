@@ -22,7 +22,7 @@
 //estruturas...
 typedef struct
 {
-    char* nome[100];
+    char nome[100];
     int PID;
 
 }ClienteDados;
@@ -42,6 +42,14 @@ typedef struct
     
 }ThreadData;
 
+
+
+// controlo do feed...
+typedef struct
+{
+    int valor;
+    int continua;
+}ThreadFeedData;
 
 
 void Menu();

@@ -50,20 +50,31 @@ int main(int argc, char* args[]){
 
 void trataComandos(ThreadData* td){
     char comando[100];
+    char parametro[100];
     Clientes c;
-    union sigval sv;
+    union sigval sv; //o mais certo é isto não ficar assim...
 
-    fgets(comando, sizeof(comando), stdin);
-    comando[strcspn(comando, "\n")] = 0;
+    //fgets(comando, sizeof(comando), stdin);
+    //comando[strcspn(comando, "\n")] = 0;
+    scanf("%s", comando);
     //pthread_create(&th1,NULL,)
     if (strcmp(comando,"users") == 0)
     {
         printf("[RECEBI] %s\n",comando);
         mostraClientes(td);
-    }else if(strcmp(comando,"remove") == 0){
-        sv.sival_int = 20;
-        printf("'%d'", td->cd[0].PID);
-        sigqueue(td->cd[0].PID, SIGUSR1, sv);
+    }else if(strncmp(comando,"remove", strlen("remove")) == 0){
+        scanf("%s", parametro);
+        printf("-> Parametro: %s", parametro);
+
+        sv.sival_int = 99;
+        for (int i = 0; i < MAX_USERS; i++)
+        {
+            if (strcmp(parametro,td->cd[i].nome) == 0)
+                sigqueue(td->cd[i].PID, SIGUSR1, sv);
+        }
+        
+        
+            
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"topics") == 0){
         printf("[RECEBI] %s\n",comando);
@@ -74,6 +85,7 @@ void trataComandos(ThreadData* td){
     }else if(strcmp(comando,"close") == 0){
         printf("[RECEBI] %s\n",comando);
         td->continua = 0;
+
     }
 
 }

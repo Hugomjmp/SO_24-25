@@ -3,8 +3,9 @@
 
 int main (int argc, char* args[]){
     int serverPipe, clientePipe;
-    char* nomePipe[100];
+    char nomePipe[100];
     ClienteDados cd;
+    ThreadFeedData tfd;
 
     struct sigaction sa;
     sa.sa_sigaction = userRemovido;
@@ -31,15 +32,17 @@ int main (int argc, char* args[]){
 
     
     snprintf(nomePipe, sizeof(nomePipe), CLIENTE_PIPE"_%d", cd.PID);
-    printf("%s",nomePipe);
+    //printf("%s",nomePipe);
     clientePipe = mkfifo(nomePipe, 0666);
     
 
-    
-    Menu();
-    while(1)
-    {
 
+
+    tfd.continua = 1;
+    while(tfd.continua == 1)
+    {
+        Menu();
+        trataComandos();
     }
     
 
@@ -50,14 +53,34 @@ int main (int argc, char* args[]){
 
 
 
-
+    close(clientePipe);
+    close(serverPipe);
+    unlink(nomePipe);
     return 1;
 }
+//tratar de comandos...
+void trataComandos(){
+    char comando[100];
+    fgets(comando, sizeof(comando), stdin);
+    comando[strcspn(comando, "\n")] = 0;
+        if (strcmp(comando,"topics") == 0){
+        printf("[RECEBI] %s\n",comando);
+    }else if(strcmp(comando,"msg") == 0){
+        printf("[RECEBI] %s\n",comando);
+    }else if(strcmp(comando,"subscribe") == 0){
+        printf("[RECEBI] %s\n",comando);
+    }else if(strcmp(comando,"unsubscribe") == 0){
+        printf("[RECEBI] %s\n",comando);
+    }else if(strcmp(comando,"exit") == 0){
+        printf("[RECEBI] %s\n",comando);
 
+    }
+}
 
 //Alertar o utilizador que foi removido
 void userRemovido(int valor, siginfo_t *si, void *u){
-    printf("fui chamado com valor '%d'",si->si_value.sival_int);
+    printf("fui chamado com valor '%d'\n",si->si_value.sival_int);
+    //COMO IMPLEMENTAR AQUI O CONTINUA????
 }
 
 

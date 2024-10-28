@@ -17,17 +17,26 @@
 //estruturas...
 typedef struct
 {
-    char* nome[100];
+    char nome[100];
     int PID;
 }ClienteDados;
 
-//struct sinais
 typedef struct
 {
+    int valor;
+    int continua;
+}ThreadFeedData;
+
+
+//struct sinais .... ver se  é necessário...
+typedef struct
+{
+    
     int sinal;
 }SinalData;
 
 
 
 void Menu();
+void trataComandos();
 void userRemovido(int valor, siginfo_t *si, void *u);
