@@ -2,11 +2,11 @@
 
 
 int main (int argc, char* args[]){
-    int serverPipe, clientePipe;
+    int serverPipe, serverPipeCliente,clientePipe;
     char nomePipe[100];
     ClienteDados cd;
     ThreadFeedData tfd;
-
+    pthread_t tid_recebeMensagens;
     struct sigaction sa;
     sa.sa_sigaction = userRemovido;
     sa.sa_flags = SA_SIGINFO;
@@ -19,22 +19,30 @@ int main (int argc, char* args[]){
     }
 
     serverPipe = open(SERVER_PIPE,O_WRONLY);
-
+    
     if (serverPipe == -1)
     {
         printf("O servidor manager não se encontra em funcionamento...\n");
         return 19;
     }
+    
     strcpy(cd.nome, args[1]);
     cd.PID = getpid();
-    write(serverPipe, &cd, sizeof(ClienteDados));
-    
+    snprintf(nomePipe, sizeof(nomePipe), CLIENTE_PIPE"_%d", cd.PID);
+    strcpy(cd.clientePipe, nomePipe);
+    strcpy(tfd.nomePipe,nomePipe);
+    write(serverPipe, &cd, sizeof(ClienteDados)); // envia os dados do feed para o manager
 
     
-    snprintf(nomePipe, sizeof(nomePipe), CLIENTE_PIPE"_%d", cd.PID);
-    //printf("%s",nomePipe);
-    clientePipe = mkfifo(nomePipe, 0666);
+    serverPipeCliente = open(SERVER_PIPECLIENTE, O_WRONLY);
+    tfd.pipeServerCliente = serverPipeCliente;
     
+    tfd.clientePipe = mkfifo(nomePipe, 0666); //cria um pipe para cada cliente
+    
+    //printf("%s",nomePipe);
+    
+    //tfd.clientePipe = open(nomePipe, O_RDONLY);
+    pthread_create(&tid_recebeMensagens,NULL,trataMensagens,(void *) &tfd);
 
 
 
@@ -42,30 +50,35 @@ int main (int argc, char* args[]){
     while(tfd.continua == 1)
     {
         Menu();
-        trataComandos();
+        trataComandos(&tfd);
     }
     
 
-
-
-
-
-
-
-
-    close(clientePipe);
+    //close(clientePipe);
     close(serverPipe);
-    unlink(nomePipe);
+    close(serverPipeCliente);
+    pthread_join(tid_recebeMensagens,NULL);
+    //unlink(nomePipe);
     return 1;
 }
 //tratar de comandos...
-void trataComandos(){
-    char comando[100];
-    fgets(comando, sizeof(comando), stdin);
-    comando[strcspn(comando, "\n")] = 0;
-        if (strcmp(comando,"topics") == 0){
+void trataComandos(ThreadFeedData *tfd){
+    char comando[100], parametro[100], parametro2[100], mensagem[MAX_CARACTER_MENSAGEM];
+    char duracao;
+    Mensagem msg;
+    //fgets(comando, sizeof(comando), stdin);
+    //comando[strcspn(comando, "\n")] = 0;
+    scanf("%s", comando);
+    if (strcmp(comando,"topics") == 0){
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"msg") == 0){
+    }else if(strncmp(comando,"msg", strlen("msg")) == 0){
+        scanf("%s", parametro);
+        //scanf("%d", &duracao);
+        //scanf("%s", mensagem);
+        strcpy(msg.tipoMSG, parametro);
+
+        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"subscribe") == 0){
         printf("[RECEBI] %s\n",comando);
@@ -73,12 +86,24 @@ void trataComandos(){
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"exit") == 0){
         printf("[RECEBI] %s\n",comando);
-
+        tfd->continua = 0;
     }
 }
 
+void *trataMensagens(void *tfd_aux){
+    ThreadFeedData *tfd = (ThreadFeedData*) tfd_aux;
+    ClienteDados cd;
+    
+    while (tfd->continua == 1)
+    {
+        read(tfd->clientePipe, &cd, sizeof(ClienteDados));
+        printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
+    }
+    
+}
+
 //Alertar o utilizador que foi removido
-void userRemovido(int valor, siginfo_t *si, void *u){
+void userRemovido(int sinal, siginfo_t *si, void *u){
     printf("fui chamado com valor '%d'\n",si->si_value.sival_int);
     //COMO IMPLEMENTAR AQUI O CONTINUA????
 }

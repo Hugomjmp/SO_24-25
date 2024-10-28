@@ -12,22 +12,36 @@
 
 
 //defines
+#define MAX_CARACTER_TOPICO 20
+#define MAX_CARACTER_MENSAGEM 300
 #define SERVER_PIPE "../SERVER"
 #define CLIENTE_PIPE "../CLIENTE"
+#define SERVER_PIPECLIENTE "../SERVERCLIENTE"
 //estruturas...
 typedef struct
 {
     char nome[100];
     int PID;
+    char clientePipe[100];
+
 }ClienteDados;
 
 typedef struct
 {
     int valor;
     int continua;
+    int clientePipe;
+    int pipeServerCliente;
+    char nomePipe[100];
+
 }ThreadFeedData;
 
 
+typedef struct
+{
+    char tipoMSG[100];
+    char conteudo[400];
+}Mensagem;
 //struct sinais .... ver se  é necessário...
 typedef struct
 {
@@ -36,7 +50,7 @@ typedef struct
 }SinalData;
 
 
-
+void *trataMensagens(void *tfd_aux);
 void Menu();
 void trataComandos();
 void userRemovido(int valor, siginfo_t *si, void *u);

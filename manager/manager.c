@@ -8,32 +8,45 @@ int main(int argc, char* args[]){
     //ClienteDados cd[MAX_USERS];
     ThreadData td; //= {.cd = cd};
     incializaTabelaClientes(&td);
+    incializaTabelaTopicos(&td);
 
 
-
-    // for (int i = 0; i < MAX_USERS; i++)
-    // {
-        
-    // }
+    //######################################
+    //#                                    #
+    //#       CRIAÇÃO NAMEDPIPPES          #
+    //#                                    #
+    //######################################
     serverPipe = mkfifo(SERVER_PIPE, 0666);
+    td.pipeServerCliente = mkfifo(SERVER_PIPECLIENTE, 0666);
+    //--------------------------------------
     if (serverPipe == -1)
     {
         printf("[ERRO] Criar o namedpipe...\n");
         return 19;
     }
-    serverPipe = open(SERVER_PIPE, O_RDONLY);
+    serverPipe = open(SERVER_PIPE, O_RDWR);
+
     td.pipeServer = serverPipe;
     td.continua = 1;
-
-    pthread_create(&tid_trataCliente,NULL,trataClientes,(void *) &td); //thread para tratar clientes
+    //######################################
+    //#                                    #
+    //#         CRIAÇÃO THREADS            #
+    //#                                    #
+    //######################################
+    pthread_create(&tid_trataCliente, 
+                    NULL,
+                    trataClientes,
+                    (void *) &td
+                    ); //thread para tratar clientes
     
 
     
 
+    //--------------------------------------
 
     while (td.continua == 1) //tratamento dos comandos
     {
-        //printf("%d", td.continua);
+        printf("-> %d", td.continua);
         Menu();
         trataComandos(&td);
     }
@@ -42,7 +55,9 @@ int main(int argc, char* args[]){
     
 
     close(serverPipe);
+    close(td.pipeServerCliente);
     unlink(SERVER_PIPE);
+    unlink(SERVER_PIPECLIENTE);
     pthread_join(tid_trataCliente, NULL);
     return 1;
 
@@ -51,7 +66,8 @@ int main(int argc, char* args[]){
 void trataComandos(ThreadData* td){
     char comando[100];
     char parametro[100];
-    Clientes c;
+    ClienteDados cd;
+
     union sigval sv; //o mais certo é isto não ficar assim...
 
     //fgets(comando, sizeof(comando), stdin);
@@ -64,19 +80,25 @@ void trataComandos(ThreadData* td){
         mostraClientes(td);
     }else if(strncmp(comando,"remove", strlen("remove")) == 0){
         scanf("%s", parametro);
-        printf("-> Parametro: %s", parametro);
+        //printf("-> Parametro: %s", parametro);
 
         sv.sival_int = 99;
         for (int i = 0; i < MAX_USERS; i++)
         {
             if (strcmp(parametro,td->cd[i].nome) == 0)
                 sigqueue(td->cd[i].PID, SIGUSR1, sv);
+            else{
+                //strcpy(cd.nome, td->cd[i].nome);
+                //write(td->pipeCliente[i],&cd, sizeof(ClienteDados));
+            }
+            
         }
         
         
             
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"topics") == 0){
+        mostraTopicos(td);
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"show") == 0){
         printf("[RECEBI] %s\n",comando);
@@ -85,7 +107,7 @@ void trataComandos(ThreadData* td){
     }else if(strcmp(comando,"close") == 0){
         printf("[RECEBI] %s\n",comando);
         td->continua = 0;
-
+        write(td->pipeServer, "", sizeof("")); //só para destrancar o pipe na thread
     }
 
 }
@@ -108,44 +130,81 @@ void Menu(){
 
 }
 
+void mostraTopicos(ThreadData *td){
+
+    printf("\t+-------------------------+\n");
+    printf("\t| Topico \t | N Mensagens |\n");
+    printf("\t+-------------------------+\n");
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        printf("\t| %s \t | %d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem);
+        printf("\t+-------------------------+\n");
+    }
+
+}
 
 
 void *trataClientes(void *tdp){
     ThreadData *td = (ThreadData*) tdp;
     ClienteDados cd[MAX_USERS];
+    ThreadData tdn;
+    char nomePipe[100];
     int i = 0;
     //printf("olá sou uma thread \n");
     while (td->continua == 1)
     {
         read(td->pipeServer, &cd[i], sizeof(ClienteDados));
-        //printf("RECEBI: '%s' com PID '%d'", cd[i].nome, cd[i].PID);
+        //printf("RECEBI: '%s' com PID '%d' com pippe '%s'\n", cd[i].nome, cd[i].PID, cd[i].clientePipe);
         fflush(stdout);
         strcpy(td->cd[i].nome,cd[i].nome);
         td->cd[i].PID = cd[i].PID;
+        strcpy(td->cd[i].clientePipe, cd[i].clientePipe); // para aparecer na tabela depois
+        td->index = i;
+        pthread_create(&td->tid_Cliente[i], NULL, trataComandosCliente, (void *) td); 
         i++; // não esquecer que não pode passar do max_users
     }
     
 }
 
 
+void *trataComandosCliente(void *td){
+    ThreadData *tdC = (ThreadData*) td;
+    Mensagem msg;
+    int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
+    
+    while (tdC->continua == 1)
+    {
+        printf("\nCHEGUEI ao READ\n");
+        read(pipe, &msg, sizeof(Mensagem));
+        printf("THREAD TRATACOMANDOS: %s", msg.tipoMSG);
+        fflush(stdout);
+    }
+    
+}
 void mostraClientes(ThreadData *td){
-    printf("\t+----------------------+\n");
-    printf("\t| Nome \t | Process ID |\n");
-    printf("\t+----------------------+\n");
+    printf("\t+-----------------------------------+\n");
+    printf("\t| Nome \t | Process ID | Pipe |\n");
+    printf("\t+-----------------------------------+\n");
     for (int i = 0; i < MAX_USERS; i++)
     {
-        printf("\t| %s \t | %d |\n" ,td->cd[i].nome, td->cd[i].PID);
+        printf("\t| %s \t | %d | %s |\n" ,td->cd[i].nome, td->cd[i].PID, td->cd[i].clientePipe);
         printf("\t+----------------------+\n");
     }
 }
-
 void incializaTabelaClientes(ThreadData *td){
 
-for (int i = 0; i < MAX_USERS; i++)
-{
-    td->cd[i].PID = 0;
-    strcpy(td->cd[i].nome,"-1");
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        td->cd[i].PID = 0;
+        strcpy(td->cd[i].nome,"-1");
+        strcpy(td->cd[i].clientePipe,"-1");
+    }
 }
+void incializaTabelaTopicos(ThreadData *td){
 
-
+    for (int i = 0; i < MAX_TOPICOS; i++)
+    {
+        td->topDt[i].numMensagem = 0;
+        strcpy(td->topDt[i].nomeTopico,"-1");
+    }
 }
