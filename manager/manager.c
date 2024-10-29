@@ -1,7 +1,10 @@
 #include "../manager/header/manager.h"
 
 
-
+//usar alarm para o tempo de vida das mensagens...
+//ver como colocar depois...
+//ou usar uma thread para fazer isto.. 
+//ver qual a melhor solução depois
 int main(int argc, char* args[]){
     pthread_t tid_trataCliente;
     int serverPipe;
@@ -73,7 +76,6 @@ void trataComandos(ThreadData* td){
     //fgets(comando, sizeof(comando), stdin);
     //comando[strcspn(comando, "\n")] = 0;
     scanf("%s", comando);
-    //pthread_create(&th1,NULL,)
     if (strcmp(comando,"users") == 0)
     {
         printf("[RECEBI] %s\n",comando);
@@ -82,7 +84,7 @@ void trataComandos(ThreadData* td){
         scanf("%s", parametro);
         //printf("-> Parametro: %s", parametro);
 
-        sv.sival_int = 99;
+        sv.sival_int = 99; //dá para passar estruturas?
         for (int i = 0; i < MAX_USERS; i++)
         {
             if (strcmp(parametro,td->cd[i].nome) == 0)
@@ -98,7 +100,7 @@ void trataComandos(ThreadData* td){
             
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"topics") == 0){
-        mostraTopicos(td);
+        mostraTopicos(td); //chama função de mostrar os topicos
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"show") == 0){
         printf("[RECEBI] %s\n",comando);
@@ -175,7 +177,7 @@ void *trataComandosCliente(void *td){
     while (tdC->continua == 1)
     {
         printf("\nCHEGUEI ao READ\n");
-        read(pipe, &msg, sizeof(Mensagem));
+        read(pipe, &msg, sizeof(Mensagem)); //não está a receber as mensagens que devia
         printf("THREAD TRATACOMANDOS: %s", msg.tipoMSG);
         fflush(stdout);
     }
