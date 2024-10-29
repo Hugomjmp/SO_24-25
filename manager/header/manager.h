@@ -42,7 +42,8 @@ typedef struct
     int pipeServerCliente;
     ClienteDados cd[MAX_USERS];
     TopicoData topDt[MAX_TOPICOS];
-    //int pipeCliente[MAX_USERS];
+    TopicoData tpd[MAX_TOPICOS];
+    int pipeCliente[MAX_USERS];
     pthread_t tid_Cliente[MAX_USERS];
     int continua;
     int index;

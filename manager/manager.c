@@ -173,16 +173,57 @@ void *trataComandosCliente(void *td){
     ThreadData *tdC = (ThreadData*) td;
     Mensagem msg;
     int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
-    
+
+    //int pipeCliente = open();
+    int index = tdC->index;
+    printf("PIPE CLIENTE: %s\n",tdC->cd[index].clientePipe);
+    sleep(1);
+    int pipeClienteResp = open(tdC->cd[index].clientePipe, O_WRONLY);
+    printf("FD DO PIPE_CLIENTE = %d\n", pipeClienteResp);
+    fflush(stdout);
     while (tdC->continua == 1)
     {
-        printf("\nCHEGUEI ao READ\n");
-        read(pipe, &msg, sizeof(Mensagem)); //não está a receber as mensagens que devia
-        printf("THREAD TRATACOMANDOS: %s", msg.tipoMSG);
+        //printf("\nCHEGUEI ao READ\n");
+        read(pipe, &msg, sizeof(Mensagem)); //recebe as mensagens de comando
+        printf("THREAD TRATACOMANDOS: %s\n", msg.tipoMSG);
         fflush(stdout);
+        if (strcmp("topics",msg.tipoMSG)==0) //trata do comando topics do cliente
+        {
+            // printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+            // printf("WTF\n");
+            // fflush(stdout);
+            // //test pipe
+            // printf("ANTES DO WRITE...\n");
+            // fflush(stdout);
+            int res = write(pipeClienteResp,&tdC->topDt,sizeof(TopicoData));
+            // printf("RES: %d", res);
+            // fflush(stdout);
+            // printf("FD DO PIPE_CLIENTE = %d\n", pipeClienteResp);
+            // fflush(stdout);
+            //---------------------------------
+            //write(); //tratar dos mutex depois
+        }else if (strcmp("msg",msg.tipoMSG)==0)
+        {
+            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+        }else if (strcmp("subscribe",msg.tipoMSG)==0)
+        {
+            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+        }else if (strcmp("unsubscribe",msg.tipoMSG)==0)
+        {
+            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+        }else if (strcmp("exit",msg.tipoMSG)==0)
+        {
+            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+        }
+        
+        
+        
+        
+        
     }
     
 }
+
 void mostraClientes(ThreadData *td){
     printf("\t+-----------------------------------+\n");
     printf("\t| Nome \t | Process ID | Pipe |\n");

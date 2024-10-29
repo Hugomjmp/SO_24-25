@@ -6,7 +6,7 @@ int main (int argc, char* args[]){
     char nomePipe[100];
     ClienteDados cd;
     ThreadFeedData tfd;
-    pthread_t tid_recebeMensagens;
+    pthread_t tid_recebeMensagens, tid_recebeFecho;
     struct sigaction sa;
     sa.sa_sigaction = userRemovido;
     sa.sa_flags = SA_SIGINFO;
@@ -44,7 +44,7 @@ int main (int argc, char* args[]){
     
     //tfd.clientePipe = open(nomePipe, O_RDONLY);
     pthread_create(&tid_recebeMensagens,NULL,trataMensagens,(void *) &tfd);
-
+    pthread_create(&tid_recebeFecho, NULL, trataFecho,(void*) &tfd);
 
 
     tfd.continua = 1;
@@ -71,24 +71,39 @@ void trataComandos(ThreadFeedData *tfd){
     //comando[strcspn(comando, "\n")] = 0;
     scanf("%s", comando);
     printf("CMD = '%s'\n", comando);
-    if (strcmp(comando,"topics") == 0){
+    if (strcmp(comando,"topics") == 0){ //trata do comando topics
+        
+        strcpy(msg.tipoMSG, comando);
+        printf("FD = %d\n",tfd->pipeServerCliente);
+
+        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+
+
+
         printf("[RECEBI] %s\n",comando);
-    }else if(strncmp(comando,"msg", strlen("msg")) == 0){
+    }else if(strncmp(comando,"msg", strlen("msg")) == 0){ //trata do comando msg
         scanf("%s", parametro);
         //scanf("%d", &duracao);
         //scanf("%s", mensagem);
         strcpy(msg.tipoMSG, parametro);
         printf("FD = %d\n",tfd->pipeServerCliente);
-        //só envia mensagens às vezes...
+        
+        //working
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
 
 
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"subscribe") == 0){
+    }else if(strcmp(comando,"subscribe") == 0){ //trata do comando subscribe
+        strcpy(msg.tipoMSG, comando);
+        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"unsubscribe") == 0){
+    }else if(strcmp(comando,"unsubscribe") == 0){ //trata do comando unsubscribe
+        strcpy(msg.tipoMSG, comando);
+        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"exit") == 0){
+    }else if(strcmp(comando,"exit") == 0){ //trata do comando exit
+        strcpy(msg.tipoMSG, comando);
+        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
         printf("[RECEBI] %s\n",comando);
         tfd->continua = 0;
     } else {
@@ -103,8 +118,17 @@ void *trataMensagens(void *tfd_aux){
     while (tfd->continua == 1)
     {
         printf("FD DO PIPE_CLIENTE = %d\n", tfd->clientePipe);
-        read(tfd->clientePipe, &cd, sizeof(ClienteDados)); //não está a receber as mensagens que devia
-        printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
+        read(tfd->clientePipe, &tfd->tpd, sizeof(TopicoData));
+        printf("| %d | | %s |", tfd->tpd[1].numMensagem, tfd->tpd->nomeTopico);
+       // printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
+    }
+    
+}
+void *trataFecho(void *tfd){ //trata de dizer ao feed para fechar o tudo...
+    ThreadFeedData *tf = (ThreadFeedData*) tfd;
+    while (tf->continua == 1)
+    {
+        
     }
     
 }

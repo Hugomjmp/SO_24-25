@@ -12,6 +12,7 @@
 
 
 //defines
+#define MAX_TOPICOS 20
 #define MAX_CARACTER_TOPICO 20
 #define MAX_CARACTER_MENSAGEM 300
 #define SERVER_PIPE "../SERVER"
@@ -28,12 +29,20 @@ typedef struct
 
 typedef struct
 {
+    char nomeTopico[MAX_CARACTER_TOPICO];
+    char mensagem[MAX_CARACTER_MENSAGEM];
+    int numMensagem;
+    int estado;     //para o bloqueado e/ou desbloqueado
+}TopicoData;
+
+typedef struct
+{
     int valor;
     int continua;
     int clientePipe;
     int pipeServerCliente;
     char nomePipe[100];
-
+    TopicoData tpd[MAX_TOPICOS];
 }ThreadFeedData;
 
 
@@ -51,6 +60,7 @@ typedef struct
 
 
 void *trataMensagens(void *tfd_aux);
+void *trataFecho(void *tfd);
 void Menu();
 void trataComandos();
 void userRemovido(int valor, siginfo_t *si, void *u);
