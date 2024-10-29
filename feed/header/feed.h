@@ -42,7 +42,6 @@ typedef struct
     int clientePipe;
     int pipeServerCliente;
     char nomePipe[100];
-    TopicoData tpd[MAX_TOPICOS];
 }ThreadFeedData;
 
 
@@ -51,12 +50,11 @@ typedef struct
     char tipoMSG[100];
     char conteudo[400];
 }Mensagem;
-//struct sinais .... ver se  é necessário...
 typedef struct
 {
-    
-    int sinal;
-}SinalData;
+    int tipoResposta;
+    TopicoData tpd[MAX_TOPICOS];
+}Resposta;
 
 
 void *trataMensagens(void *tfd_aux);

@@ -114,12 +114,26 @@ void trataComandos(ThreadFeedData *tfd){
 void *trataMensagens(void *tfd_aux){
     ThreadFeedData *tfd = (ThreadFeedData*) tfd_aux;
     ClienteDados cd;
+    Resposta rsp;
     
     while (tfd->continua == 1)
     {
         printf("FD DO PIPE_CLIENTE = %d\n", tfd->clientePipe);
-        read(tfd->clientePipe, &tfd->tpd, sizeof(TopicoData));
-        printf("| %d | | %s |", tfd->tpd[1].numMensagem, tfd->tpd->nomeTopico);
+        read(tfd->clientePipe, &rsp, sizeof(Resposta));
+        if (rsp.tipoResposta == 0)
+        {
+            printf("Recebi topicos do server \n");
+            printf("\t+-------------------------+\n");
+            printf("\t| Topico \t | N Mensagens |\n");
+            printf("\t+-------------------------+\n");
+            for (int i = 0; i < MAX_TOPICOS; i++)
+            {
+                printf("\t| %s \t | %d |\n" ,rsp.tpd[i].nomeTopico, rsp.tpd[i].numMensagem);
+                printf("\t+-------------------------+\n");
+            }
+        }
+        
+        //printf("| %d | | %s |", tfd->tpd[1].numMensagem, tfd->tpd->nomeTopico);
        // printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
     }
     

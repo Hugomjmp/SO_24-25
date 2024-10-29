@@ -132,18 +132,7 @@ void Menu(){
 
 }
 
-void mostraTopicos(ThreadData *td){
 
-    printf("\t+-------------------------+\n");
-    printf("\t| Topico \t | N Mensagens |\n");
-    printf("\t+-------------------------+\n");
-    for (int i = 0; i < MAX_USERS; i++)
-    {
-        printf("\t| %s \t | %d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem);
-        printf("\t+-------------------------+\n");
-    }
-
-}
 
 
 void *trataClientes(void *tdp){
@@ -189,13 +178,15 @@ void *trataComandosCliente(void *td){
         fflush(stdout);
         if (strcmp("topics",msg.tipoMSG)==0) //trata do comando topics do cliente
         {
+
             // printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
             // printf("WTF\n");
             // fflush(stdout);
             // //test pipe
             // printf("ANTES DO WRITE...\n");
             // fflush(stdout);
-            int res = write(pipeClienteResp,&tdC->topDt,sizeof(TopicoData));
+            respostaTopicos(tdC, pipeClienteResp);
+            
             // printf("RES: %d", res);
             // fflush(stdout);
             // printf("FD DO PIPE_CLIENTE = %d\n", pipeClienteResp);
@@ -223,7 +214,19 @@ void *trataComandosCliente(void *td){
     }
     
 }
-
+void respostaTopicos(ThreadData *td, int pipeClienteResp){
+    Resposta rsp;
+    rsp.tipoResposta = 0;
+    for (int i = 0; i < MAX_TOPICOS; i++)
+    {
+        rsp.tpd[i].estado = td->topDt[i].estado;
+        strcpy(rsp.tpd[i].mensagem,td->topDt[i].mensagem);
+        strcpy(rsp.tpd[i].nomeTopico,td->topDt[i].nomeTopico);
+        rsp.tpd[i].numMensagem = td->topDt[i].numMensagem;
+    }
+    
+    int res = write(pipeClienteResp,&rsp,sizeof(Resposta));
+}
 void mostraClientes(ThreadData *td){
     printf("\t+-----------------------------------+\n");
     printf("\t| Nome \t | Process ID | Pipe |\n");
@@ -233,6 +236,19 @@ void mostraClientes(ThreadData *td){
         printf("\t| %s \t | %d | %s |\n" ,td->cd[i].nome, td->cd[i].PID, td->cd[i].clientePipe);
         printf("\t+----------------------+\n");
     }
+}
+
+void mostraTopicos(ThreadData *td){
+
+    printf("\t+-------------------------+\n");
+    printf("\t| Topico \t | N Mensagens |\n");
+    printf("\t+-------------------------+\n");
+    for (int i = 0; i < MAX_TOPICOS; i++)
+    {
+        printf("\t| %s \t | %d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem);
+        printf("\t+-------------------------+\n");
+    }
+
 }
 void incializaTabelaClientes(ThreadData *td){
 
@@ -250,4 +266,5 @@ void incializaTabelaTopicos(ThreadData *td){
         td->topDt[i].numMensagem = 0;
         strcpy(td->topDt[i].nomeTopico,"-1");
     }
+    //strcpy(td->topDt[5].nomeTopico,"ILDA");
 }
