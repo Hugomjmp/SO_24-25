@@ -15,6 +15,7 @@
 #define MAX_TOPICOS 20
 #define MAX_MSG_PERSISTENTES 5
 #define MAX_CARACTER_TOPICO 20
+#define MAX_LINHAS_TOPICOS 100
 #define MAX_CARACTER_MENSAGEM 300
 #define SERVER_PIPE "../SERVER"
 #define CLIENTE_PIPE "../CLIENTE"
@@ -28,17 +29,16 @@ typedef struct
 
 }ClienteDados;
 
-typedef struct {
-    char mensagem[MAX_CARACTER_MENSAGEM];
-}MensagemPersistentes;
-typedef struct
-{
-    char nomeTopico[MAX_CARACTER_TOPICO];
-    MensagemPersistentes mensagem[MAX_MSG_PERSISTENTES];
-    int duracao;
-    int numMensagem; //não sei se é necessário
-    int estado;     //para o bloqueado e/ou desbloqueado
-}TopicoData;
+typedef struct { // a ser usada
+    char topico[MAX_CARACTER_TOPICO];       //Nome dos tópicos
+    char mensagem[MAX_CARACTER_MENSAGEM];   //Mensagem para os tópicos
+    int nMensagem;                          //Número de Mensagens para o tópico
+    int duracao;                            //Duração das mensagens persistentes
+    int estados;                            //Estado 0: Desbloqueado, 1: Bloqueado
+}TopicoTabela;
+
+
+
 typedef struct {
     char topico[MAX_CARACTER_TOPICO];
     char mensagem[MAX_CARACTER_MENSAGEM];
@@ -64,7 +64,7 @@ typedef struct
 typedef struct
 {
     int tipoResposta;
-    TopicoData tpd[MAX_TOPICOS];
+    TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS];
     char msgRsp[100];
 }Resposta;
 
@@ -74,3 +74,4 @@ void *trataFecho(void *tfd);
 void Menu();
 void trataComandos();
 void userRemovido(int valor, siginfo_t *si, void *u);
+void mostraTopicosfeed(Resposta *rsp);

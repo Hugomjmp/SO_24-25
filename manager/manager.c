@@ -68,14 +68,16 @@ int main(int argc, char* args[]){
 
 void trataComandos(ThreadData* td){
     char comando[100];
-    char parametro[100];
+    char user[100], topics[MAX_CARACTER_TOPICO];
     ClienteDados cd;
     Resposta rsp;
     union sigval sv; //o mais certo é isto não ficar assim...
 
-    //fgets(comando, sizeof(comando), stdin);
-    //comando[strcspn(comando, "\n")] = 0;
-    scanf("%s", comando);
+    fgets(comando, sizeof(comando), stdin);
+    comando[strcspn(comando, "\n")] = 0;
+    char *resultado = strtok(comando, " "); //para separar as palavras
+    strcpy(comando, resultado);
+    //scanf("%s", comando);
     //COMANDO PARA MOSTRAR OS USERS
     if (strcmp(comando,"users") == 0)
     {
@@ -85,11 +87,17 @@ void trataComandos(ThreadData* td){
     }
     //COMANDO PARA REMOVER UTILIZADORES
     else if(strncmp(comando,"remove", strlen("remove")) == 0){ //REMOVER UTILIZADOR...
-        scanf("%s", parametro);
+
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(user, resultado);
+        }
+        //scanf("%s", parametro);
 
         for (int i = 0; i < MAX_USERS; i++)
         {
-            if (strcmp(parametro,td->cd[i].nome) == 0) {
+            if (strcmp(user,td->cd[i].nome) == 0) {
                 rsp.tipoResposta = 99;
                 strcpy(rsp.msgRsp,td->cd[i].nome);
                 write(td->pipeCliente[i],&rsp.tipoResposta,sizeof(rsp.tipoResposta));
@@ -102,14 +110,34 @@ void trataComandos(ThreadData* td){
         }
 
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"topics") == 0){
+    }
+    //COMANDO PARA MOSTRAR TOPICO E NUMERO DE MENSAGENS PERSISTENTES
+    else if(strcmp(comando,"topics") == 0){
         mostraTopicos(td); //chama função de mostrar os tópicos
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"show") == 0){
+    }
+    //COMANDO PARA MOSTRAR MENSAGENS DE UM DETERMINADO TOPICO
+    else if(strcmp(comando,"show") == 0){
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(topics, resultado);
+            mostraMensagens(td,topics);
+        }else {
+            printf("Tem de introduzir um topico\n");
+        }
+        //printf("[RECEBI] %s\n",comando);
+    }
+    //COMANDO PARA BLOQUEADER UM TOPICO
+    else if(strcmp(comando,"lock") == 0){
         printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"lock") == 0){
-        printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"close") == 0){
+    }
+    //COMANDO PARA DESBLOQUEAR UM TOPICO
+    else if(strcmp(comando,"unlock") == 0) {
+
+    }
+    //COMANDO PARA TERMINAR O MANAGER E INFORMAR OS FEED'S
+    else if(strcmp(comando,"close") == 0){
         printf("[RECEBI] %s\n",comando);
         td->continua = 0;
         rsp.tipoResposta = 99;
@@ -126,25 +154,6 @@ void trataComandos(ThreadData* td){
     }
 
 }
-
-void Menu(){
-
-
-    printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
-    printf("\t\e[0;32m|                              MANAGER - MENU                                   |\e[0m\n");
-    printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34musers             \e[1;32m- Lista utilizadores ligados.                               \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34mremove <username> \e[1;32m- Remove utilizador da plataforma.                          \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34mtopics            \e[1;32m- Apresenta os topicos existentes na plataforma.            \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34mshow              \e[1;32m- Apresenta todas as mensagens de um topico.                \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34mlock <topico>     \e[1;32m- Bloqueia novas mensagens para para o topico selecionado.  \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34munlock <topico>   \e[1;32m- Desbloqueia topico.                                       \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m| \e[1;34mclose             \e[1;32m- Encerra a plataforma.                                     \e[0;32m|\e[0m\n");
-    printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
-    printf("#> ");
-
-}
-
 
 
 
@@ -241,46 +250,6 @@ void *trataComandosCliente(void *td){
                     break;
                 }
 
-
-
-                /*if  {//só faz se houver espaço
-
-                    break;
-                }*/
-
-                /*for (int i = 0; i < MAX_TOPICOS; i++) {
-                    for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
-                        /*if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) { //encontro o topico
-                            tdC->topicoTabela.nMensagem[i]++; //incremento nMensages
-                            /*for (int k = 0; k < MAX_MSG_PERSISTENTES; k++) {
-                                if (tdC->topicoTabela.duracao[i][k] == 0){
-                                    tdC->topicoTabela.duracao[i][j] = msg.topico.duracao;
-                                    break;
-                                }
-                            }
-                            for (int k = 0; k < MAX_MSG_PERSISTENTES; k++) {
-                                if(strcmp(tdC->topicoTabela.mensagem[i][k],"-1") == 0) {
-                                    strcpy(tdC->topicoTabela.mensagem[i][j],msg.topico.mensagem);
-                                    break;
-                                }
-                            }#2#
-                            break;
-                        }#1#
-                    }
-                }*/
-
-
-
-                /*strcpy(tdC->topDt->nomeTopico,msg.topico.topico);
-                tdC->topDt->duracao = msg.topico.duracao;
-                strcpy(tdC->topDt->mensagem[0].mensagem,msg.topico.mensagem); *///falta fazer a verificação
-                /*for (int i = 0; i < MAX_TOPICOS; i++) {
-                    if (strcmp(msg.topico.topico,tdC->topDt[i].nomeTopico) == 0) {
-                        //tdC->topDt[]
-                        nMsg++;
-                    }
-                }
-                */
             }
         }
 
@@ -298,6 +267,8 @@ void *trataComandosCliente(void *td){
         else if (strcmp("exit",msg.tipoMSG)==0)
         {
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+            //tenho de retirar o cliente depois aqui se não fica em loop
+            // e informar os outros utilizadores
         }
 
     }
@@ -306,12 +277,17 @@ void *trataComandosCliente(void *td){
 void respostaTopicos(ThreadData *td, int pipeClienteResp){
     Resposta rsp;
     rsp.tipoResposta = 0;
-    for (int i = 0; i < MAX_TOPICOS; i++)
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
-        rsp.tpd[i].estado = td->topDt[i].estado;
-        //strcpy(rsp.tpd[i].mensagem,td->topDt[i].mensagem); //ver isto...
-        strcpy(rsp.tpd[i].nomeTopico,td->topDt[i].nomeTopico);
-        rsp.tpd[i].numMensagem = td->topDt[i].numMensagem;
+        strcpy(rsp.topicoTabela[i].topico,td->topicoTabela[i].topico);
+        rsp.topicoTabela[i].nMensagem = td->topicoTabela[i].nMensagem;
+        strcpy(rsp.topicoTabela[i].mensagem,td->topicoTabela[i].mensagem);
+        rsp.topicoTabela[i].duracao = td->topicoTabela[i].duracao;
+        /*printf("|%s|%d|%s|%d|",rsp.topicos[i].topico,
+            rsp.topicos[i].nMensagem,
+            rsp.topicos[i].mensagem,
+            rsp.topicos[i].duracao);
+        fflush(stdout);*/
     }
     
     /*int res = */write(pipeClienteResp,&rsp,sizeof(Resposta));
@@ -328,54 +304,48 @@ void mostraClientes(ThreadData *td){
         }
     }
 }
-
 void mostraTopicos(ThreadData *td){
 
-    printf("+---------------------------------------------------------------------------"
-           "------------------------------------------------+\n");
-    printf("| TOPICO               | N_MSG | MENSAGEM \t\t\t\t\t\t\t\t\t  | DURACAO |\n");
-    printf("+---------------------------------------------------------------------------"
-           "------------------------------------------------+\n");
+    printf("+------------------------------+\n");
+    printf("| TOPICO               | N_MSG |\n");
+    printf("+------------------------------+\n");
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
         if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
-
             if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
                 printf("| %-20s |", td->topicoTabela[i].topico);
             }else {
                 printf("| %-20s |", "");
             }
             if (i >= 0 && td->topicoTabela[i].nMensagem != 0) {
-                printf(" %-5d |", td->topicoTabela[i].nMensagem);
+                printf(" %-5d |\n", td->topicoTabela[i].nMensagem);
             }else {
-                printf(" %-5s |", "");
+                printf(" %-5s |\n", "");
             }
-            printf(" %-80s | %-7d |\n" ,
-                    td->topicoTabela[i].mensagem,
-                    td->topicoTabela[i].duracao);
-            /*printf("| %-20s | %-5d | %-80s | %-7d |\n" ,td->topicoTabela[i].topico,
-                    td->topicoTabela[i].nMensagem,
-                    td->topicoTabela[i].mensagem,
-                    td->topicoTabela[i].duracao);*/
-
-
-
+            printf("+------------------------------+\n");
+        }
+    }
+}
+void mostraMensagens(ThreadData *td,const char* topics) {
+    printf("+---------------------------------------------------------------------------"
+               "------------------------------------------------+\n");
+    printf("| TOPICO               | MENSAGEM \t\t\t\t\t\t\t\t\t\t\t    |\n");
+    printf("+---------------------------------------------------------------------------"
+           "------------------------------------------------+\n");
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
+    {
+        if (strcmp(td->topicoTabela[i].topico,topics) == 0 &&
+            strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
+            if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
+                printf("| %-20s |", td->topicoTabela[i].topico);
+            }else {
+                printf("| %-20s |", "");
+            }
+            printf(" %-98s |\n" ,td->topicoTabela[i].mensagem);
             printf("+---------------------------------------------------------------------------"
                            "------------------------------------------------+\n");
         }
-
-
-        /*
-        * if (strcmp(td->topDt[i].nomeTopico, "-1") != 0) {
-            printf("| %-20s | %-5d | %-80s | %-7d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem
-                    ,td->topDt[i].mensagem[0].mensagem, td->topDt[i].duracao);
-            printf("+---------------------------------------------------------------------------"
-               "------------------------------------------------+\n");
-        }
-         */
-
     }
-
 }
 void incializaTabelaClientes(ThreadData *td){
 
@@ -394,5 +364,28 @@ void incializaTabelaTopicos(ThreadData *td){
         td->topicoTabela[i].nMensagem = 0;
         strcpy(td->topicoTabela[i].mensagem,"-1");
         td->topicoTabela[i].duracao = 0;
+        td->topicoTabela[i].estados = 0;
     }
+}
+
+
+
+
+void Menu(){
+
+
+    printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
+    printf("\t\e[0;32m|                              MANAGER - MENU                                   |\e[0m\n");
+    printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34musers             \e[1;32m- Lista utilizadores ligados.                               \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34mremove <username> \e[1;32m- Remove utilizador da plataforma.                          \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34mtopics            \e[1;32m- Apresenta os topicos existentes na plataforma.            \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34mshow <topico>     \e[1;32m- Apresenta todas as mensagens de um topico.                \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34mlock <topico>     \e[1;32m- Bloqueia novas mensagens para para o topico selecionado.  \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34munlock <topico>   \e[1;32m- Desbloqueia topico.                                       \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34mstatus            \e[1;32m- Mostra o estado dos topicos.                              \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34mclose             \e[1;32m- Encerra a plataforma.                                     \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
+    printf("#> ");
+
 }

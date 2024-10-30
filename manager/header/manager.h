@@ -22,6 +22,8 @@
 #define CLIENTE_PIPE "../CLIENTE"
 #define SERVER_PIPECLIENTE "../SERVERCLIENTE"
 //estruturas...
+
+//ESTRUTURA COM INFORMAÇÃO DOS CLIENTES
 typedef struct
 {
     char nome[100];
@@ -29,12 +31,7 @@ typedef struct
     char clientePipe[100];
 }ClienteDados;
 
-typedef struct {
-    char mensagem[MAX_CARACTER_MENSAGEM];
-}MensagemPersistentes;
-
-
-
+//ESTRUTURA COM INFORMAÇÃO DOS TOPICOS
 typedef struct {
     char topico[MAX_CARACTER_TOPICO];       //Nome dos tópicos
     char mensagem[MAX_CARACTER_MENSAGEM];   //Mensagem para os tópicos
@@ -43,17 +40,7 @@ typedef struct {
     int estados;                            //Estado 0: Desbloqueado, 1: Bloqueado
 }TopicoTabela;
 
-
-
-typedef struct
-{
-    char nomeTopico[MAX_CARACTER_TOPICO];
-    MensagemPersistentes mensagem[MAX_MSG_PERSISTENTES];
-    int duracao;
-    int numMensagem; //não sei se é necessário
-    int estado;     //para o bloqueado e/ou desbloqueado
-}TopicoData;
-
+//ESTRUTURA PARA O CLIENTE INDICAR INFORMAÇÕES SOBRE OS TOPICOS
 typedef struct {
     char topico[MAX_CARACTER_TOPICO];
     char mensagem[MAX_CARACTER_MENSAGEM];
@@ -71,7 +58,7 @@ typedef struct
 typedef struct
 {
     int tipoResposta;
-    TopicoData tpd[MAX_TOPICOS];
+    TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS];
     char msgRsp[100];
 }Resposta;
 
@@ -81,7 +68,6 @@ typedef struct
     int pipeServerCliente;
     ClienteDados cd[MAX_USERS];
     TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS]; // <- fica estE?
-    TopicoData topDt[MAX_TOPICOS]; //para retirar depois, talvês
     int pipeCliente[MAX_USERS];
     pthread_t tid_Cliente[MAX_USERS];
     int continua;
@@ -111,9 +97,11 @@ void trataComandos(ThreadData *td);
 void mostraClientes(ThreadData *td);
 void incializaTabelaClientes(ThreadData *td);
 void mostraTopicos(ThreadData *td);
+void mostraMensagens(ThreadData *td,const char* topics);
 void incializaTabelaTopicos(ThreadData *td);
 void respostaTopicos(ThreadData *td, int pipeClienteResp);
 void inicializaPipes(ThreadData* td);
+
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);

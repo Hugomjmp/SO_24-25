@@ -127,25 +127,18 @@ void *trataMensagens(void *tfd_aux){
     ThreadFeedData *tfd = (ThreadFeedData*) tfd_aux;
     ClienteDados cd;
     Resposta rsp;
-    
+    //incializaTabelaTopicosFeed(&rsp);
     while (tfd->continua == 1)
     {
         printf("FD DO PIPE_CLIENTE = %d\n", tfd->clientePipe);
         read(tfd->clientePipe, &rsp, sizeof(Resposta));
         printf("resposta do Servidor->%d\n",rsp.tipoResposta);
         fflush(stdout);
+
         switch (rsp.tipoResposta) {
             //DEVOLVE OS TOPICOS PEDIDOS PELO CLIENTE
             case 0: {
-                printf("Recebi topicos do server \n");
-                printf("\t+-------------------------+\n");
-                printf("\t| Topico \t | N Mensagens | Estado |\n");
-                printf("\t+-------------------------+\n");
-                for (int i = 0; i < MAX_TOPICOS; i++)
-                {
-                    printf("\t| %s \t | %d |\n" ,rsp.tpd[i].nomeTopico, rsp.tpd[i].numMensagem);
-                    printf("\t+-------------------------+\n");
-                }
+                mostraTopicosfeed(&rsp);
                 break;
             }
             case 1: {
@@ -168,26 +161,40 @@ void *trataMensagens(void *tfd_aux){
             }
         }
 
-
-        /*if (rsp.tipoResposta == 0)
-        {
-            printf("Recebi topicos do server \n");
-            printf("\t+-------------------------+\n");
-            printf("\t| Topico \t | N Mensagens |\n");
-            printf("\t+-------------------------+\n");
-            for (int i = 0; i < MAX_TOPICOS; i++)
-            {
-                printf("\t| %s \t | %d |\n" ,rsp.tpd[i].nomeTopico, rsp.tpd[i].numMensagem);
-                printf("\t+-------------------------+\n");
-            }
-        }*/
-        
-        //printf("| %d | | %s |", tfd->tpd[1].numMensagem, tfd->tpd->nomeTopico);
-       // printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
     }
     
 }
+void mostraTopicosfeed(Resposta *rsp) {
+    printf("+---------------------------------------------------------------------------"
+"------------------------------------------------+\n");
+    printf("| TOPICO               | N_MSG | MENSAGEM \t\t\t\t\t\t\t\t\t  | DURACAO |\n");
+    printf("+---------------------------------------------------------------------------"
+           "------------------------------------------------+\n");
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
+    {
 
+        if (strcmp(rsp->topicoTabela[i].topico,"-1") != 0 && strcmp(rsp->topicoTabela[i].mensagem,"-1") != 0) {
+
+            if (i >= 0 && strcmp(rsp->topicoTabela[i].topico,rsp->topicoTabela[i-1].topico) != 0) {
+                printf("| %-20s |", rsp->topicoTabela[i].topico);
+            }else {
+                printf("| %-20s |", "");
+            }
+            if (i >= 0 && rsp->topicoTabela[i].nMensagem != 0) {
+                printf(" %-5d |", rsp->topicoTabela[i].nMensagem);
+            }else {
+                printf(" %-5s |", "");
+            }
+            printf(" %-80s | %-7d |\n" ,
+                    rsp->topicoTabela[i].mensagem,
+                    rsp->topicoTabela[i].duracao);
+
+            printf("+---------------------------------------------------------------------------"
+                           "------------------------------------------------+\n");
+        }
+    }
+
+}
 //Alertar o utilizador que foi removido
 void userRemovido(int sinal, siginfo_t *si, void *u){
     printf("fui chamado com valor '%d'\n",si->si_value.sival_int);
