@@ -114,7 +114,7 @@ void trataComandos(ThreadData* td){
     //COMANDO PARA MOSTRAR TOPICO E NUMERO DE MENSAGENS PERSISTENTES
     else if(strcmp(comando,"topics") == 0){
         mostraTopicos(td); //chama função de mostrar os tópicos
-        printf("[RECEBI] %s\n",comando);
+        //printf("[RECEBI] %s\n",comando);
     }
     //COMANDO PARA MOSTRAR MENSAGENS DE UM DETERMINADO TOPICO
     else if(strcmp(comando,"show") == 0){
@@ -130,15 +130,34 @@ void trataComandos(ThreadData* td){
     }
     //COMANDO PARA BLOQUEADER UM TOPICO
     else if(strcmp(comando,"lock") == 0){
-        printf("[RECEBI] %s\n",comando);
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(topics, resultado);
+            bloqueiaTopicos(td,topics);
+        }else {
+            printf("Tem de introduzir um topico\n");
+        }
+
+        //printf("[RECEBI] %s\n",comando);
     }
     //COMANDO PARA DESBLOQUEAR UM TOPICO
     else if(strcmp(comando,"unlock") == 0) {
-
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(topics, resultado);
+            desbloqueiaTopicos(td,topics);
+        }else {
+            printf("Tem de introduzir um topico\n");
+        }
+    }
+    else if (strcmp(comando,"status") == 0) {
+        printf("[RECEBI] %s\n",comando);
+        mostraEstados(td);
     }
     //COMANDO PARA TERMINAR O MANAGER E INFORMAR OS FEED'S
     else if(strcmp(comando,"close") == 0){
-        printf("[RECEBI] %s\n",comando);
         td->continua = 0;
         rsp.tipoResposta = 99;
         int res;
@@ -347,6 +366,28 @@ void mostraMensagens(ThreadData *td,const char* topics) {
         }
     }
 }
+void mostraEstados(ThreadData *td) {
+    char estado[20];
+    printf("+--------------------------------------+\n");
+    printf("| TOPICO               | Estado        |\n");
+    printf("+--------------------------------------+\n");
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
+    {
+        if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
+            if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
+                if (td->topicoTabela[i].estados == 0)
+                    strcpy(estado, "desbloqueado");
+                else
+                    strcpy(estado, "bloqueado");
+                printf("| %-20s | %-13s |\n", td->topicoTabela[i].topico,
+                    estado);
+            }else {
+                printf("| %-20s | %-13s |\n", "","");
+            }
+            printf("+--------------------------------------+\n");
+        }
+    }
+}
 void incializaTabelaClientes(ThreadData *td){
 
     for (int i = 0; i < MAX_USERS; i++)
@@ -367,9 +408,26 @@ void incializaTabelaTopicos(ThreadData *td){
         td->topicoTabela[i].estados = 0;
     }
 }
-
-
-
+void bloqueiaTopicos(ThreadData *td, const char* topics) {
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        if (strcmp(td->topicoTabela[i].topico,topics) == 0 &&
+                    strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
+            if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
+                td->topicoTabela[i].estados = 1;
+            }
+                    }
+    }
+}
+void desbloqueiaTopicos(ThreadData *td, const char* topics) {
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        if (strcmp(td->topicoTabela[i].topico,topics) == 0 &&
+                    strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
+            if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
+                td->topicoTabela[i].estados = 0;
+            }
+                    }
+    }
+}
 
 void Menu(){
 

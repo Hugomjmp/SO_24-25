@@ -64,11 +64,13 @@ int main (int argc, char* args[]){
 void trataComandos(ThreadFeedData *tfd){
     char comando[100], topico[100], duracao[10], mensagem[MAX_CARACTER_MENSAGEM];
     Mensagem msg;
+    int estadoOkay = 1;
     fgets(comando, sizeof(comando), stdin);
     comando[strcspn(comando, "\n")] = 0; //para remover a quebra de linha
     char *resultado = strtok(comando, " "); //para separar as palavras
     strcpy(comando, resultado);
     printf("CMD = '%s'\n", comando);
+
     if (strcmp(comando,"topics") == 0){ //trata do comando topics
         printf("A enviar o comando topics...\n");
         strcpy(msg.tipoMSG, comando);
@@ -89,17 +91,30 @@ void trataComandos(ThreadFeedData *tfd){
         if(resultado != NULL) {
             strcpy(duracao, resultado);
         }
+        printf("%d",estadoOkay);
         //estrair mensagem
         resultado = strtok(NULL, "");
         if(resultado != NULL) {
             strcpy(mensagem, resultado);
         }
-        strcpy(msg.tipoMSG, comando);
-        strcpy(msg.topico.topico,topico);
-        msg.topico.duracao = atoi(duracao);
-        strcpy(msg.topico.mensagem,mensagem);
-        //working
-        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+
+            strcpy(msg.tipoMSG, comando);
+            strcpy(msg.topico.topico,topico);
+            msg.topico.duracao = atoi(duracao);
+
+        if(msg.topico.duracao > 0) {
+            estadoOkay = 1;
+        }
+        else {
+            printf("A duração tem de ser um inteiro.\n");
+            estadoOkay = 0;
+        }
+            strcpy(msg.topico.mensagem,mensagem);
+
+        if(estadoOkay == 1) {
+            write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+        }
+
 
 
         printf("[RECEBI] %s\n",comando);

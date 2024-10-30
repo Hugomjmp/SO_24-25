@@ -101,7 +101,9 @@ void mostraMensagens(ThreadData *td,const char* topics);
 void incializaTabelaTopicos(ThreadData *td);
 void respostaTopicos(ThreadData *td, int pipeClienteResp);
 void inicializaPipes(ThreadData* td);
-
+void mostraEstados(ThreadData *td);
+void bloqueiaTopicos(ThreadData *td,const char* topics);
+void desbloqueiaTopicos(ThreadData *td, const char* topics);
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);
