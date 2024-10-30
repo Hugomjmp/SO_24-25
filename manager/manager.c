@@ -338,7 +338,7 @@ void mostraTopicos(ThreadData *td){
            "------------------------------------------------+\n");
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
-        if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") == 0) {
+        if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
 
             if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
                 printf("| %-20s |", td->topicoTabela[i].topico);
