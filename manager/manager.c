@@ -70,7 +70,7 @@ void trataComandos(ThreadData* td){
     char comando[100];
     char parametro[100];
     ClienteDados cd;
-
+    Resposta rsp;
     union sigval sv; //o mais certo é isto não ficar assim...
 
     //fgets(comando, sizeof(comando), stdin);
@@ -80,27 +80,26 @@ void trataComandos(ThreadData* td){
     {
         printf("[RECEBI] %s\n",comando);
         mostraClientes(td);
-    }else if(strncmp(comando,"remove", strlen("remove")) == 0){
+    }else if(strncmp(comando,"remove", strlen("remove")) == 0){ //REMOVER UTILIZADOR...
         scanf("%s", parametro);
-        //printf("-> Parametro: %s", parametro);
 
-        sv.sival_int = 99; //dá para passar estruturas?
         for (int i = 0; i < MAX_USERS; i++)
         {
-            if (strcmp(parametro,td->cd[i].nome) == 0)
-                sigqueue(td->cd[i].PID, SIGUSR1, sv);
-            else{
-                //strcpy(cd.nome, td->cd[i].nome);
-                //write(td->pipeCliente[i],&cd, sizeof(ClienteDados));
+            if (strcmp(parametro,td->cd[i].nome) == 0) {
+                rsp.tipoResposta = 99;
+                strcpy(rsp.msgRsp,td->cd[i].nome);
+                write(td->pipeCliente[i],&rsp.tipoResposta,sizeof(rsp.tipoResposta));
             }
-            
+            else {
+                rsp.tipoResposta = 98;
+                write(td->pipeCliente[i],&rsp,sizeof(Resposta));
+                sleep(1);
+            }
         }
-        
-        
-            
+
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"topics") == 0){
-        mostraTopicos(td); //chama função de mostrar os topicos
+        mostraTopicos(td); //chama função de mostrar os tópicos
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"show") == 0){
         printf("[RECEBI] %s\n",comando);
@@ -109,6 +108,14 @@ void trataComandos(ThreadData* td){
     }else if(strcmp(comando,"close") == 0){
         printf("[RECEBI] %s\n",comando);
         td->continua = 0;
+        rsp.tipoResposta = 99;
+        int res;
+        for(int i = 0; i < MAX_USERS; i++) {
+            printf("PIPE DIZ %d",td->pipeCliente[i]);
+            fflush(stdout);
+            res = write(td->pipeCliente[i], &rsp.tipoResposta,sizeof(rsp.tipoResposta));
+            printf("[res] %d\n",res);
+        }
         write(td->pipeServer, "", sizeof("")); //só para destrancar o pipe na thread
     }
 
@@ -141,7 +148,7 @@ void *trataClientes(void *tdp){
     ThreadData tdn;
     char nomePipe[100];
     int i = 0;
-    //printf("olá sou uma thread \n");
+    inicializaPipes(td);
     while (td->continua == 1)
     {
         read(td->pipeServer, &cd[i], sizeof(ClienteDados));
@@ -156,7 +163,11 @@ void *trataClientes(void *tdp){
     }
     
 }
-
+void inicializaPipes(ThreadData* td) {
+    for (int i = 0; i < MAX_USERS; i++) {
+        td->pipeCliente[i] = -1;
+    }
+}
 
 void *trataComandosCliente(void *td){
     ThreadData *tdC = (ThreadData*) td;
@@ -168,6 +179,7 @@ void *trataComandosCliente(void *td){
     printf("PIPE CLIENTE: %s\n",tdC->cd[index].clientePipe);
     sleep(1);
     int pipeClienteResp = open(tdC->cd[index].clientePipe, O_WRONLY);
+    tdC->pipeCliente[index] = pipeClienteResp;
     printf("FD DO PIPE_CLIENTE = %d\n", pipeClienteResp);
     fflush(stdout);
     while (tdC->continua == 1)
@@ -206,11 +218,7 @@ void *trataComandosCliente(void *td){
         {
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
-        
-        
-        
-        
-        
+
     }
     
 }
@@ -225,28 +233,28 @@ void respostaTopicos(ThreadData *td, int pipeClienteResp){
         rsp.tpd[i].numMensagem = td->topDt[i].numMensagem;
     }
     
-    int res = write(pipeClienteResp,&rsp,sizeof(Resposta));
+    /*int res = */write(pipeClienteResp,&rsp,sizeof(Resposta));
 }
 void mostraClientes(ThreadData *td){
-    printf("\t+-----------------------------------+\n");
-    printf("\t| Nome \t | Process ID | Pipe |\n");
-    printf("\t+-----------------------------------+\n");
+    printf("\t\t+------------------+-+------------+-+----------------------+\n");
+    printf("\t\t| Nome             | | Process ID | | Pipe                 |\n");
+    printf("\t\t+------------------+-+------------+-+----------------------+\n");
     for (int i = 0; i < MAX_USERS; i++)
     {
-        printf("\t| %s \t | %d | %s |\n" ,td->cd[i].nome, td->cd[i].PID, td->cd[i].clientePipe);
-        printf("\t+----------------------+\n");
+        printf("\t\t| %-16s | | %-10d | | %-20s |\n" ,td->cd[i].nome, td->cd[i].PID, td->cd[i].clientePipe);
+        printf("\t\t+------------------+-+------------+-+----------------------+\n");
     }
 }
 
 void mostraTopicos(ThreadData *td){
 
-    printf("\t+-------------------------+\n");
-    printf("\t| Topico \t | N Mensagens |\n");
-    printf("\t+-------------------------+\n");
+    printf("\t\t+-------------------------+\n");
+    printf("\t\t| Topico \t | N Mensagens |\n");
+    printf("\t\t+-------------------------+\n");
     for (int i = 0; i < MAX_TOPICOS; i++)
     {
-        printf("\t| %s \t | %d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem);
-        printf("\t+-------------------------+\n");
+        printf("\t\t| %s \t | %d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem);
+        printf("\t\t+-------------------------+\n");
     }
 
 }

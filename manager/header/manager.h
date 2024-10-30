@@ -28,6 +28,13 @@ typedef struct
     char clientePipe[100];
 }ClienteDados;
 
+typedef struct {
+
+}MensagemPersistentes;
+
+
+
+
 typedef struct
 {
     char nomeTopico[MAX_CARACTER_TOPICO];
@@ -35,6 +42,20 @@ typedef struct
     int numMensagem;
     int estado;     //para o bloqueado e/ou desbloqueado
 }TopicoData;
+
+typedef struct
+{
+    char tipoMSG[100];
+    char conteudo[400];
+}Mensagem;
+
+
+typedef struct
+{
+    int tipoResposta;
+    TopicoData tpd[MAX_TOPICOS];
+    char msgRsp[100];
+}Resposta;
 
 typedef struct
 {
@@ -46,7 +67,6 @@ typedef struct
     pthread_t tid_Cliente[MAX_USERS];
     int continua;
     int index;
-    
 }ThreadData;
 
 
@@ -54,17 +74,8 @@ typedef struct
 
 
 
-typedef struct
-{
-    char tipoMSG[100];
-    char conteudo[400];
-}Mensagem;
 
-typedef struct
-{
-    int tipoResposta;
-    TopicoData tpd[MAX_TOPICOS];
-}Resposta;
+
 
 
 
@@ -83,6 +94,7 @@ void incializaTabelaClientes(ThreadData *td);
 void mostraTopicos(ThreadData *td);
 void incializaTabelaTopicos(ThreadData *td);
 void respostaTopicos(ThreadData *td, int pipeClienteResp);
+void inicializaPipes(ThreadData* td);
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);

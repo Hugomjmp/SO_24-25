@@ -59,7 +59,7 @@ int main (int argc, char* args[]){
     close(serverPipe);
     close(serverPipeCliente);
     pthread_join(tid_recebeMensagens,NULL);
-    //unlink(nomePipe);
+    unlink(nomePipe);
     return 1;
 }
 //tratar de comandos...
@@ -120,7 +120,41 @@ void *trataMensagens(void *tfd_aux){
     {
         printf("FD DO PIPE_CLIENTE = %d\n", tfd->clientePipe);
         read(tfd->clientePipe, &rsp, sizeof(Resposta));
-        if (rsp.tipoResposta == 0)
+        printf("resposta do Servidor->%d\n",rsp.tipoResposta);
+        fflush(stdout);
+        switch (rsp.tipoResposta) {
+            case 0: {
+                printf("Recebi topicos do server \n");
+                printf("\t+-------------------------+\n");
+                printf("\t| Topico \t | N Mensagens |\n");
+                printf("\t+-------------------------+\n");
+                for (int i = 0; i < MAX_TOPICOS; i++)
+                {
+                    printf("\t| %s \t | %d |\n" ,rsp.tpd[i].nomeTopico, rsp.tpd[i].numMensagem);
+                    printf("\t+-------------------------+\n");
+                }
+                break;
+            }
+            case 1: {
+
+                break;
+            }
+            case 98: {
+                printf("O utilizador %s foi removido do servidor.\n", rsp.msgRsp);
+                break;
+            }
+            case 99: {
+
+
+                printf("Servidor foi offline...\n");
+                printf("A sair....\n");
+                tfd->continua = 0;
+                break;
+            }
+        }
+
+
+        /*if (rsp.tipoResposta == 0)
         {
             printf("Recebi topicos do server \n");
             printf("\t+-------------------------+\n");
@@ -131,7 +165,7 @@ void *trataMensagens(void *tfd_aux){
                 printf("\t| %s \t | %d |\n" ,rsp.tpd[i].nomeTopico, rsp.tpd[i].numMensagem);
                 printf("\t+-------------------------+\n");
             }
-        }
+        }*/
         
         //printf("| %d | | %s |", tfd->tpd[1].numMensagem, tfd->tpd->nomeTopico);
        // printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
@@ -142,7 +176,8 @@ void *trataFecho(void *tfd){ //trata de dizer ao feed para fechar o tudo...
     ThreadFeedData *tf = (ThreadFeedData*) tfd;
     while (tf->continua == 1)
     {
-        
+        printf("ola\n");
+        sleep(5);
     }
     
 }

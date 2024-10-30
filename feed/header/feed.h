@@ -54,6 +54,7 @@ typedef struct
 {
     int tipoResposta;
     TopicoData tpd[MAX_TOPICOS];
+    char msgRsp[100];
 }Resposta;
 
 
