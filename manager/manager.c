@@ -179,7 +179,7 @@ void *trataComandosCliente(void *td){
     Mensagem msg;
     int nMsg = 0;
     int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
-
+    int escreveuMsg;
 
     //int pipeCliente = open();
     int index = tdC->index;
@@ -192,6 +192,7 @@ void *trataComandosCliente(void *td){
     while (tdC->continua == 1)
     {
         //printf("\nCHEGUEI ao READ\n");
+        escreveuMsg = 0;
         read(pipe, &msg, sizeof(Mensagem)); //recebe as mensagens de comando
         printf("THREAD TRATACOMANDOS: %s\n", msg.tipoMSG);
         fflush(stdout);
@@ -201,55 +202,88 @@ void *trataComandosCliente(void *td){
             respostaTopicos(tdC, pipeClienteResp);
         }
         //TRATA DO COMANDO MSG DO CLIENTE
-        else if (strcmp("msg",msg.tipoMSG)==0)
-        {
+        else if (strcmp("msg",msg.tipoMSG)==0) {
             printf("[RECEBI DO CLIENTE TIPO] %s\n",msg.tipoMSG);
             printf("[RECEBI DO CLIENTE NOMETOPIC] %s\n",msg.topico.topico);
             printf("[RECEBI DO CLIENTE DURACAO] %d\n",msg.topico.duracao);
             printf("[RECEBI DO CLIENTE MENSAGEM] %s\n",msg.topico.mensagem);
 
-            for (int i = 0; i < MAX_TOPICOS; i++) {
-                if (strcmp(tdC->topicoTabela.topico[i],"-1") == 0) {//só faz se houver espaço
-                    strcpy(tdC->topicoTabela.topico[i],msg.topico.topico);
+
+            for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+                // para a primeira vez...
+                if (strcmp(tdC->topicoTabela[i].topico,"-1") == 0){
+                    for (int j = i; j < i+5; j++) {
+                        strcpy(tdC->topicoTabela[j].topico,msg.topico.topico);
+                    }
+                    if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0)
+                        tdC->topicoTabela[i].nMensagem++; //incremento nMensages
+                    if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0) {
+                        strcpy(tdC->topicoTabela[i].mensagem,msg.topico.mensagem);
+                        tdC->topicoTabela[i].duracao = msg.topico.duracao;
+                        escreveuMsg = 1;
+                        break;
+                    }
+                }
+                if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0 && escreveuMsg == 0) {
+                    printf("CHEGUEI AQUI!\n");
+                    fflush(stdout);
+                    tdC->topicoTabela[i].nMensagem++; //ver isto
+                    for (int j = i; j < i + 5; j++) {
+                        if (strcmp(tdC->topicoTabela[j].mensagem,"-1") == 0) {
+                            strcpy(tdC->topicoTabela[j].mensagem,msg.topico.mensagem);
+                            tdC->topicoTabela[j].duracao = msg.topico.duracao;
+                            break;
+                        }
+                    }
+                    //strcpy(tdC->topicoTabela[i+1].mensagem,msg.topico.mensagem);
+                    tdC->topicoTabela[i+1].duracao = msg.topico.duracao;
+                    escreveuMsg = 1;
                     break;
                 }
-            }
-            for (int i = 0; i < MAX_TOPICOS; i++) {
-                for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
-                    if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) {
-                        tdC->topicoTabela.nMensagem[j] += tdC->topicoTabela.nMensagem[j];
-                        break;
-                    }
-                    if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) {
-                        tdC->topicoTabela.duracao[i][j] = msg.topico.duracao;
-                        break;
-                    }
-                    if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) {
-                        strcpy(tdC->topicoTabela.mensagem[i][j],msg.topico.mensagem);
-                    }
 
 
 
+                /*if  {//só faz se houver espaço
+
+                    break;
+                }*/
+
+                /*for (int i = 0; i < MAX_TOPICOS; i++) {
+                    for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
+                        /*if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) { //encontro o topico
+                            tdC->topicoTabela.nMensagem[i]++; //incremento nMensages
+                            /*for (int k = 0; k < MAX_MSG_PERSISTENTES; k++) {
+                                if (tdC->topicoTabela.duracao[i][k] == 0){
+                                    tdC->topicoTabela.duracao[i][j] = msg.topico.duracao;
+                                    break;
+                                }
+                            }
+                            for (int k = 0; k < MAX_MSG_PERSISTENTES; k++) {
+                                if(strcmp(tdC->topicoTabela.mensagem[i][k],"-1") == 0) {
+                                    strcpy(tdC->topicoTabela.mensagem[i][j],msg.topico.mensagem);
+                                    break;
+                                }
+                            }#2#
+                            break;
+                        }#1#
+                    }
+                }*/
+
+
+
+                /*strcpy(tdC->topDt->nomeTopico,msg.topico.topico);
+                tdC->topDt->duracao = msg.topico.duracao;
+                strcpy(tdC->topDt->mensagem[0].mensagem,msg.topico.mensagem); *///falta fazer a verificação
+                /*for (int i = 0; i < MAX_TOPICOS; i++) {
+                    if (strcmp(msg.topico.topico,tdC->topDt[i].nomeTopico) == 0) {
+                        //tdC->topDt[]
+                        nMsg++;
+                    }
                 }
+                */
             }
-
-
-
-            /*strcpy(tdC->topDt->nomeTopico,msg.topico.topico);
-            tdC->topDt->duracao = msg.topico.duracao;
-            strcpy(tdC->topDt->mensagem[0].mensagem,msg.topico.mensagem); *///falta fazer a verificação
-            /*for (int i = 0; i < MAX_TOPICOS; i++) {
-                if (strcmp(msg.topico.topico,tdC->topDt[i].nomeTopico) == 0) {
-                    //tdC->topDt[]
-                    nMsg++;
-                }
-            }
-            */
-
-
-
-
         }
+
         //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
         else if (strcmp("subscribe",msg.tipoMSG)==0)
         {
@@ -302,22 +336,34 @@ void mostraTopicos(ThreadData *td){
     printf("| TOPICO               | N_MSG | MENSAGEM \t\t\t\t\t\t\t\t\t  | DURACAO |\n");
     printf("+---------------------------------------------------------------------------"
            "------------------------------------------------+\n");
-    for (int i = 0; i < MAX_TOPICOS; i++)
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
+        if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") == 0) {
+
+            if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
+                printf("| %-20s |", td->topicoTabela[i].topico);
+            }else {
+                printf("| %-20s |", "");
+            }
+            if (i >= 0 && td->topicoTabela[i].nMensagem != 0) {
+                printf(" %-5d |", td->topicoTabela[i].nMensagem);
+            }else {
+                printf(" %-5s |", "");
+            }
+            printf(" %-80s | %-7d |\n" ,
+                    td->topicoTabela[i].mensagem,
+                    td->topicoTabela[i].duracao);
+            /*printf("| %-20s | %-5d | %-80s | %-7d |\n" ,td->topicoTabela[i].topico,
+                    td->topicoTabela[i].nMensagem,
+                    td->topicoTabela[i].mensagem,
+                    td->topicoTabela[i].duracao);*/
 
 
-            printf("| %-20s | %-5d | %-80s | %-7d |\n" ,td->topicoTabela.topico[i],
-                    td->topicoTabela.nMensagem[i],
-                    td->topicoTabela.mensagem[i][0], //mostra a primeira
-                    td->topicoTabela.duracao[i][0]); //mostra a primeira
-        for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
-            printf("| %-20s | %-5s | %-80s | %-7d |\n" ,"",
-                "",
-                td->topicoTabela.mensagem[j][0],
-                td->topicoTabela.duracao[j][0]);
-        }
+
             printf("+---------------------------------------------------------------------------"
-               "------------------------------------------------+\n");
+                           "------------------------------------------------+\n");
+        }
+
 
         /*
         * if (strcmp(td->topDt[i].nomeTopico, "-1") != 0) {
@@ -342,19 +388,11 @@ void incializaTabelaClientes(ThreadData *td){
 }
 void incializaTabelaTopicos(ThreadData *td){
 
-    for (int i = 0; i < MAX_TOPICOS; i++)
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
-
-        strcpy(td->topicoTabela.topico[i],"-1");
-        td->topicoTabela.nMensagem[i] = 0;
-        for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
-            strcpy(td->topicoTabela.mensagem[i][j],"-1");
-            td->topicoTabela.duracao[i][j] = 0;
-        }
-
-    }
-    for (int i = 0; i < MAX_MSG_PERSISTENTES; i++) {
-        td->topicoTabela.estados[i] = 0;
-
+        strcpy(td->topicoTabela[i].topico,"-1");
+        td->topicoTabela[i].nMensagem = 0;
+        strcpy(td->topicoTabela[i].mensagem,"-1");
+        td->topicoTabela[i].duracao = 0;
     }
 }
