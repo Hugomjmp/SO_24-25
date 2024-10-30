@@ -177,7 +177,9 @@ void inicializaPipes(ThreadData* td) {
 void *trataComandosCliente(void *td){
     ThreadData *tdC = (ThreadData*) td;
     Mensagem msg;
+    int nMsg = 0;
     int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
+
 
     //int pipeCliente = open();
     int index = tdC->index;
@@ -205,9 +207,44 @@ void *trataComandosCliente(void *td){
             printf("[RECEBI DO CLIENTE NOMETOPIC] %s\n",msg.topico.topico);
             printf("[RECEBI DO CLIENTE DURACAO] %d\n",msg.topico.duracao);
             printf("[RECEBI DO CLIENTE MENSAGEM] %s\n",msg.topico.mensagem);
-            strcpy(tdC->topDt->nomeTopico,msg.topico.topico);
+
+            for (int i = 0; i < MAX_TOPICOS; i++) {
+                if (strcmp(tdC->topicoTabela.topico[i],"-1") == 0) {//só faz se houver espaço
+                    strcpy(tdC->topicoTabela.topico[i],msg.topico.topico);
+                    break;
+                }
+            }
+            for (int i = 0; i < MAX_TOPICOS; i++) {
+                for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
+                    if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) {
+                        tdC->topicoTabela.nMensagem[j] += tdC->topicoTabela.nMensagem[j];
+                        break;
+                    }
+                    if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) {
+                        tdC->topicoTabela.duracao[i][j] = msg.topico.duracao;
+                        break;
+                    }
+                    if (strcmp(tdC->topicoTabela.topico[i],msg.topico.topico) == 0) {
+                        strcpy(tdC->topicoTabela.mensagem[i][j],msg.topico.mensagem);
+                    }
+
+
+
+                }
+            }
+
+
+
+            /*strcpy(tdC->topDt->nomeTopico,msg.topico.topico);
             tdC->topDt->duracao = msg.topico.duracao;
-            strcpy(tdC->topDt->mensagem[0].mensagem,msg.topico.mensagem); //falta fazer a verificação
+            strcpy(tdC->topDt->mensagem[0].mensagem,msg.topico.mensagem); *///falta fazer a verificação
+            /*for (int i = 0; i < MAX_TOPICOS; i++) {
+                if (strcmp(msg.topico.topico,tdC->topDt[i].nomeTopico) == 0) {
+                    //tdC->topDt[]
+                    nMsg++;
+                }
+            }
+            */
 
 
 
@@ -251,21 +288,46 @@ void mostraClientes(ThreadData *td){
     printf("\t\t+------------------+-+------------+-+----------------------+\n");
     for (int i = 0; i < MAX_USERS; i++)
     {
-        printf("\t\t| %-16s | | %-10d | | %-20s |\n" ,td->cd[i].nome, td->cd[i].PID, td->cd[i].clientePipe);
-        printf("\t\t+------------------+-+------------+-+----------------------+\n");
+        if (strcmp(td->cd[i].nome, "-1") != 0){
+            printf("\t\t| %-16s | | %-10d | | %-20s |\n" ,td->cd[i].nome, td->cd[i].PID, td->cd[i].clientePipe);
+            printf("\t\t+------------------+-+------------+-+----------------------+\n");
+        }
     }
 }
 
 void mostraTopicos(ThreadData *td){
 
-    printf("\t\t+---------------------------------------------------+\n");
-    printf("\t\t| TOPICO               | N_MSG | MENSAGEM | DURACAO |\n");
-    printf("\t\t+---------------------------------------------------+\n");
+    printf("+---------------------------------------------------------------------------"
+           "------------------------------------------------+\n");
+    printf("| TOPICO               | N_MSG | MENSAGEM \t\t\t\t\t\t\t\t\t  | DURACAO |\n");
+    printf("+---------------------------------------------------------------------------"
+           "------------------------------------------------+\n");
     for (int i = 0; i < MAX_TOPICOS; i++)
     {
-        printf("\t\t| %-20s | %-5d | %-s | %-3d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem
-            ,td->topDt[i].mensagem[0].mensagem, td->topDt[i].duracao);
-        printf("\t\t+-------------------------+\n");
+
+
+            printf("| %-20s | %-5d | %-80s | %-7d |\n" ,td->topicoTabela.topico[i],
+                    td->topicoTabela.nMensagem[i],
+                    td->topicoTabela.mensagem[i][0], //mostra a primeira
+                    td->topicoTabela.duracao[i][0]); //mostra a primeira
+        for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
+            printf("| %-20s | %-5s | %-80s | %-7d |\n" ,"",
+                "",
+                td->topicoTabela.mensagem[j][0],
+                td->topicoTabela.duracao[j][0]);
+        }
+            printf("+---------------------------------------------------------------------------"
+               "------------------------------------------------+\n");
+
+        /*
+        * if (strcmp(td->topDt[i].nomeTopico, "-1") != 0) {
+            printf("| %-20s | %-5d | %-80s | %-7d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem
+                    ,td->topDt[i].mensagem[0].mensagem, td->topDt[i].duracao);
+            printf("+---------------------------------------------------------------------------"
+               "------------------------------------------------+\n");
+        }
+         */
+
     }
 
 }
@@ -282,10 +344,17 @@ void incializaTabelaTopicos(ThreadData *td){
 
     for (int i = 0; i < MAX_TOPICOS; i++)
     {
-        td->topDt[i].numMensagem = 0;
-        strcpy(td->topDt[i].nomeTopico,"-1");
 
-        //strcpy(td->topDt[i].mensagem[0].mensagem,"-1");
+        strcpy(td->topicoTabela.topico[i],"-1");
+        td->topicoTabela.nMensagem[i] = 0;
+        for (int j = 0; j < MAX_MSG_PERSISTENTES; j++) {
+            strcpy(td->topicoTabela.mensagem[i][j],"-1");
+            td->topicoTabela.duracao[i][j] = 0;
+        }
+
     }
-    //strcpy(td->topDt[5].nomeTopico,"ILDA");
+    for (int i = 0; i < MAX_MSG_PERSISTENTES; i++) {
+        td->topicoTabela.estados[i] = 0;
+
+    }
 }

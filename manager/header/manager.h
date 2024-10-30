@@ -32,6 +32,18 @@ typedef struct {
     char mensagem[MAX_CARACTER_MENSAGEM];
 }MensagemPersistentes;
 
+
+
+typedef struct {
+    char topico[MAX_TOPICOS][MAX_CARACTER_TOPICO];              //Nome dos tópicos
+    char mensagem[MAX_TOPICOS][MAX_MSG_PERSISTENTES][MAX_CARACTER_MENSAGEM]; //Mensagem para os tópicos
+    int nMensagem[MAX_TOPICOS];                                 //Número de Mensagens para o tópico
+    int duracao[MAX_TOPICOS][MAX_MSG_PERSISTENTES];             //Duração das mensagens persistentes
+    int estados[MAX_TOPICOS];                                   //Estado 0: Desbloqueado, 1: Bloqueado
+}TopicoTabela;
+
+
+
 typedef struct
 {
     char nomeTopico[MAX_CARACTER_TOPICO];
@@ -67,7 +79,8 @@ typedef struct
     int pipeServer;
     int pipeServerCliente;
     ClienteDados cd[MAX_USERS];
-    TopicoData topDt[MAX_TOPICOS];
+    TopicoTabela topicoTabela; // <- fica estE?
+    TopicoData topDt[MAX_TOPICOS]; //para retirar depois, talvês
     int pipeCliente[MAX_USERS];
     pthread_t tid_Cliente[MAX_USERS];
     int continua;
