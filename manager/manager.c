@@ -76,11 +76,15 @@ void trataComandos(ThreadData* td){
     //fgets(comando, sizeof(comando), stdin);
     //comando[strcspn(comando, "\n")] = 0;
     scanf("%s", comando);
+    //COMANDO PARA MOSTRAR OS USERS
     if (strcmp(comando,"users") == 0)
     {
-        printf("[RECEBI] %s\n",comando);
+        //printf("[RECEBI] %s\n",comando);
+        printf("A mostrar os utilizadores..\n");
         mostraClientes(td);
-    }else if(strncmp(comando,"remove", strlen("remove")) == 0){ //REMOVER UTILIZADOR...
+    }
+    //COMANDO PARA REMOVER UTILIZADORES
+    else if(strncmp(comando,"remove", strlen("remove")) == 0){ //REMOVER UTILIZADOR...
         scanf("%s", parametro);
 
         for (int i = 0; i < MAX_USERS; i++)
@@ -111,10 +115,12 @@ void trataComandos(ThreadData* td){
         rsp.tipoResposta = 99;
         int res;
         for(int i = 0; i < MAX_USERS; i++) {
-            printf("PIPE DIZ %d",td->pipeCliente[i]);
-            fflush(stdout);
-            res = write(td->pipeCliente[i], &rsp.tipoResposta,sizeof(rsp.tipoResposta));
-            printf("[res] %d\n",res);
+            if (td->pipeCliente[i] != -1) { //só faz para os clientes ligados
+                printf("PIPE DIZ %d",td->pipeCliente[i]);
+                fflush(stdout);
+                res = write(td->pipeCliente[i], &rsp.tipoResposta,sizeof(rsp.tipoResposta));
+                printf("[res] %d\n",res);
+            }
         }
         write(td->pipeServer, "", sizeof("")); //só para destrancar o pipe na thread
     }
@@ -168,7 +174,6 @@ void inicializaPipes(ThreadData* td) {
         td->pipeCliente[i] = -1;
     }
 }
-
 void *trataComandosCliente(void *td){
     ThreadData *tdC = (ThreadData*) td;
     Mensagem msg;
@@ -188,33 +193,38 @@ void *trataComandosCliente(void *td){
         read(pipe, &msg, sizeof(Mensagem)); //recebe as mensagens de comando
         printf("THREAD TRATACOMANDOS: %s\n", msg.tipoMSG);
         fflush(stdout);
-        if (strcmp("topics",msg.tipoMSG)==0) //trata do comando topics do cliente
+        //TRATA DO COMANDO TOPICS DO CLIENTE
+        if (strcmp("topics",msg.tipoMSG)==0)
         {
-
-            // printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-            // printf("WTF\n");
-            // fflush(stdout);
-            // //test pipe
-            // printf("ANTES DO WRITE...\n");
-            // fflush(stdout);
             respostaTopicos(tdC, pipeClienteResp);
-            
-            // printf("RES: %d", res);
-            // fflush(stdout);
-            // printf("FD DO PIPE_CLIENTE = %d\n", pipeClienteResp);
-            // fflush(stdout);
-            //---------------------------------
-            //write(); //tratar dos mutex depois
-        }else if (strcmp("msg",msg.tipoMSG)==0)
+        }
+        //TRATA DO COMANDO MSG DO CLIENTE
+        else if (strcmp("msg",msg.tipoMSG)==0)
+        {
+            printf("[RECEBI DO CLIENTE TIPO] %s\n",msg.tipoMSG);
+            printf("[RECEBI DO CLIENTE NOMETOPIC] %s\n",msg.topico.topico);
+            printf("[RECEBI DO CLIENTE DURACAO] %d\n",msg.topico.duracao);
+            printf("[RECEBI DO CLIENTE MENSAGEM] %s\n",msg.topico.mensagem);
+            strcpy(tdC->topDt->nomeTopico,msg.topico.topico);
+            tdC->topDt->duracao = msg.topico.duracao;
+            strcpy(tdC->topDt->mensagem[0].mensagem,msg.topico.mensagem); //falta fazer a verificação
+
+
+
+
+        }
+        //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
+        else if (strcmp("subscribe",msg.tipoMSG)==0)
         {
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-        }else if (strcmp("subscribe",msg.tipoMSG)==0)
+        }
+        //TRATA DO COMANDO UNSUBSCRIBE DO CLIENTE
+        else if (strcmp("unsubscribe",msg.tipoMSG)==0)
         {
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-        }else if (strcmp("unsubscribe",msg.tipoMSG)==0)
-        {
-            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-        }else if (strcmp("exit",msg.tipoMSG)==0)
+        }
+        //TRATA DO COMANDO EXIT DO CLIENTE
+        else if (strcmp("exit",msg.tipoMSG)==0)
         {
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
@@ -228,7 +238,7 @@ void respostaTopicos(ThreadData *td, int pipeClienteResp){
     for (int i = 0; i < MAX_TOPICOS; i++)
     {
         rsp.tpd[i].estado = td->topDt[i].estado;
-        strcpy(rsp.tpd[i].mensagem,td->topDt[i].mensagem);
+        //strcpy(rsp.tpd[i].mensagem,td->topDt[i].mensagem); //ver isto...
         strcpy(rsp.tpd[i].nomeTopico,td->topDt[i].nomeTopico);
         rsp.tpd[i].numMensagem = td->topDt[i].numMensagem;
     }
@@ -248,12 +258,13 @@ void mostraClientes(ThreadData *td){
 
 void mostraTopicos(ThreadData *td){
 
-    printf("\t\t+-------------------------+\n");
-    printf("\t\t| Topico \t | N Mensagens |\n");
-    printf("\t\t+-------------------------+\n");
+    printf("\t\t+---------------------------------------------------+\n");
+    printf("\t\t| TOPICO               | N_MSG | MENSAGEM | DURACAO |\n");
+    printf("\t\t+---------------------------------------------------+\n");
     for (int i = 0; i < MAX_TOPICOS; i++)
     {
-        printf("\t\t| %s \t | %d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem);
+        printf("\t\t| %-20s | %-5d | %-s | %-3d |\n" ,td->topDt[i].nomeTopico, td->topDt[i].numMensagem
+            ,td->topDt[i].mensagem[0].mensagem, td->topDt[i].duracao);
         printf("\t\t+-------------------------+\n");
     }
 
@@ -273,6 +284,8 @@ void incializaTabelaTopicos(ThreadData *td){
     {
         td->topDt[i].numMensagem = 0;
         strcpy(td->topDt[i].nomeTopico,"-1");
+
+        //strcpy(td->topDt[i].mensagem[0].mensagem,"-1");
     }
     //strcpy(td->topDt[5].nomeTopico,"ILDA");
 }

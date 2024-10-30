@@ -29,24 +29,29 @@ typedef struct
 }ClienteDados;
 
 typedef struct {
-
+    char mensagem[MAX_CARACTER_MENSAGEM];
 }MensagemPersistentes;
-
-
-
 
 typedef struct
 {
     char nomeTopico[MAX_CARACTER_TOPICO];
-    char mensagem[MAX_CARACTER_MENSAGEM];
-    int numMensagem;
+    MensagemPersistentes mensagem[MAX_MSG_PERSISTENTES];
+    int duracao;
+    int numMensagem; //não sei se é necessário
     int estado;     //para o bloqueado e/ou desbloqueado
 }TopicoData;
+
+typedef struct {
+    char topico[MAX_CARACTER_TOPICO];
+    char mensagem[MAX_CARACTER_MENSAGEM];
+    int duracao;
+}Topico;
 
 typedef struct
 {
     char tipoMSG[100];
     char conteudo[400];
+    Topico topico;
 }Mensagem;
 
 

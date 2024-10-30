@@ -44,8 +44,6 @@ int main (int argc, char* args[]){
     
     //tfd.clientePipe = open(nomePipe, O_RDONLY);
     pthread_create(&tid_recebeMensagens,NULL,trataMensagens,(void *) &tfd);
-    pthread_create(&tid_recebeFecho, NULL, trataFecho,(void*) &tfd);
-
 
     tfd.continua = 1;
     while(tfd.continua == 1)
@@ -64,30 +62,42 @@ int main (int argc, char* args[]){
 }
 //tratar de comandos...
 void trataComandos(ThreadFeedData *tfd){
-    char comando[100], parametro[100], parametro2[100], mensagem[MAX_CARACTER_MENSAGEM];
-    char duracao;
+    char comando[100], topico[100], duracao[10], mensagem[MAX_CARACTER_MENSAGEM];
     Mensagem msg;
-    //fgets(comando, sizeof(comando), stdin);
-    //comando[strcspn(comando, "\n")] = 0;
-    scanf("%s", comando);
+    fgets(comando, sizeof(comando), stdin);
+    comando[strcspn(comando, "\n")] = 0; //para remover a quebra de linha
+    char *resultado = strtok(comando, " "); //para separar as palavras
+    strcpy(comando, resultado);
     printf("CMD = '%s'\n", comando);
     if (strcmp(comando,"topics") == 0){ //trata do comando topics
-        
+        printf("A enviar o comando topics...\n");
         strcpy(msg.tipoMSG, comando);
         printf("FD = %d\n",tfd->pipeServerCliente);
 
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
 
-
-
-        printf("[RECEBI] %s\n",comando);
+        //printf("[RECEBI] %s\n",comando);
     }else if(strncmp(comando,"msg", strlen("msg")) == 0){ //trata do comando msg
-        scanf("%s", parametro);
-        //scanf("%d", &duracao);
-        //scanf("%s", mensagem);
-        strcpy(msg.tipoMSG, parametro);
-        printf("FD = %d\n",tfd->pipeServerCliente);
-        
+
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(topico, resultado);
+        }
+        //estrair duracao
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(duracao, resultado);
+        }
+        //estrair mensagem
+        resultado = strtok(NULL, "");
+        if(resultado != NULL) {
+            strcpy(mensagem, resultado);
+        }
+        strcpy(msg.tipoMSG, comando);
+        strcpy(msg.topico.topico,topico);
+        msg.topico.duracao = atoi(duracao);
+        strcpy(msg.topico.mensagem,mensagem);
         //working
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
 
@@ -111,6 +121,8 @@ void trataComandos(ThreadFeedData *tfd){
     }
 }
 
+
+//THREAD QUE TRATA DA RESPOSTA DO SERVIDOR
 void *trataMensagens(void *tfd_aux){
     ThreadFeedData *tfd = (ThreadFeedData*) tfd_aux;
     ClienteDados cd;
@@ -123,10 +135,11 @@ void *trataMensagens(void *tfd_aux){
         printf("resposta do Servidor->%d\n",rsp.tipoResposta);
         fflush(stdout);
         switch (rsp.tipoResposta) {
+            //DEVOLVE OS TOPICOS PEDIDOS PELO CLIENTE
             case 0: {
                 printf("Recebi topicos do server \n");
                 printf("\t+-------------------------+\n");
-                printf("\t| Topico \t | N Mensagens |\n");
+                printf("\t| Topico \t | N Mensagens | Estado |\n");
                 printf("\t+-------------------------+\n");
                 for (int i = 0; i < MAX_TOPICOS; i++)
                 {
@@ -139,10 +152,12 @@ void *trataMensagens(void *tfd_aux){
 
                 break;
             }
+            //DIZ QUE HOUVE UM UTILIZADOR QUE FOI REMOVIDO
             case 98: {
                 printf("O utilizador %s foi removido do servidor.\n", rsp.msgRsp);
                 break;
             }
+            //MANDA DESLIGAR O CLIENTE
             case 99: {
 
 
@@ -169,15 +184,6 @@ void *trataMensagens(void *tfd_aux){
         
         //printf("| %d | | %s |", tfd->tpd[1].numMensagem, tfd->tpd->nomeTopico);
        // printf("O utilizador %s foi eliminado da plataforma.\n", cd.nome);
-    }
-    
-}
-void *trataFecho(void *tfd){ //trata de dizer ao feed para fechar o tudo...
-    ThreadFeedData *tf = (ThreadFeedData*) tfd;
-    while (tf->continua == 1)
-    {
-        printf("ola\n");
-        sleep(5);
     }
     
 }
