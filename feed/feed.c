@@ -30,6 +30,7 @@ int main (int argc, char* args[]){
     cd.PID = getpid();
     snprintf(nomePipe, sizeof(nomePipe), CLIENTE_PIPE"_%d", cd.PID);
     strcpy(cd.clientePipe, nomePipe);
+    strcpy(tfd.clienteDados.nome,cd.nome);
     strcpy(tfd.nomePipe,nomePipe);
     write(serverPipe, &cd, sizeof(ClienteDados)); // envia os dados do feed para o manager
 
@@ -102,24 +103,31 @@ void trataComandos(ThreadFeedData *tfd){
             strcpy(msg.topico.topico,topico);
             msg.topico.duracao = atoi(duracao);
 
-        if(msg.topico.duracao > 0) {
+        /*if(msg.topico.duracao > 0) {
             estadoOkay = 1;
         }
         else {
             printf("A duração tem de ser um inteiro.\n");
             estadoOkay = 0;
-        }
+        }*/
             strcpy(msg.topico.mensagem,mensagem);
 
-        if(estadoOkay == 1) {
+        /*if(estadoOkay == 1) {*/
             write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
-        }
+        //}
 
 
 
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"subscribe") == 0){ //trata do comando subscribe
         strcpy(msg.tipoMSG, comando);
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(topico, resultado);
+        }
+        strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
+        strcpy(msg.topico.mensagem,mensagem);
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"unsubscribe") == 0){ //trata do comando unsubscribe
@@ -180,6 +188,7 @@ void *trataMensagens(void *tfd_aux){
     
 }
 void mostraTopicosfeed(Resposta *rsp) {
+
     printf("+---------------------------------------------------------------------------"
 "------------------------------------------------+\n");
     printf("| TOPICO               | N_MSG | MENSAGEM \t\t\t\t\t\t\t\t\t  | DURACAO |\n");
@@ -188,7 +197,7 @@ void mostraTopicosfeed(Resposta *rsp) {
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
 
-        if (strcmp(rsp->topicoTabela[i].topico,"-1") != 0 && strcmp(rsp->topicoTabela[i].mensagem,"-1") != 0) {
+        if (strcmp(rsp->topicoTabela[i].topico,"-1") != 0 /*&& strcmp(rsp->topicoTabela[i].mensagem,"-1") != 0*/) {
 
             if (i >= 0 && strcmp(rsp->topicoTabela[i].topico,rsp->topicoTabela[i-1].topico) != 0) {
                 printf("| %-20s |", rsp->topicoTabela[i].topico);

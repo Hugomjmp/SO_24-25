@@ -29,12 +29,14 @@ typedef struct
 
 }ClienteDados;
 
-typedef struct { // a ser usada
+//ESTRUTURA COM INFORMAÇÃO DOS TOPICOS
+typedef struct {
     char topico[MAX_CARACTER_TOPICO];       //Nome dos tópicos
     char mensagem[MAX_CARACTER_MENSAGEM];   //Mensagem para os tópicos
     int nMensagem;                          //Número de Mensagens para o tópico
     int duracao;                            //Duração das mensagens persistentes
     int estados;                            //Estado 0: Desbloqueado, 1: Bloqueado
+    char autor[50];                         //Autor da mensagem
 }TopicoTabela;
 
 
@@ -51,6 +53,7 @@ typedef struct
     int clientePipe;
     int pipeServerCliente;
     char nomePipe[100];
+    ClienteDados clienteDados;
 }ThreadFeedData;
 
 
@@ -58,6 +61,7 @@ typedef struct
 {
     char tipoMSG[100];
     char conteudo[400];
+    ClienteDados clienteDados;
     Topico topico;
 }Mensagem;
 

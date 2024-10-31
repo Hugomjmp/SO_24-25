@@ -30,6 +30,10 @@ typedef struct
     int PID;
     char clientePipe[100];
 }ClienteDados;
+typedef struct {
+    char topico[MAX_CARACTER_TOPICO];
+    char userSubscrito[50];
+}Subscribe;
 
 //ESTRUTURA COM INFORMAÇÃO DOS TOPICOS
 typedef struct {
@@ -38,7 +42,9 @@ typedef struct {
     int nMensagem;                          //Número de Mensagens para o tópico
     int duracao;                            //Duração das mensagens persistentes
     int estados;                            //Estado 0: Desbloqueado, 1: Bloqueado
+    char autor[50];                         //Autor da mensagem
 }TopicoTabela;
+
 
 //ESTRUTURA PARA O CLIENTE INDICAR INFORMAÇÕES SOBRE OS TOPICOS
 typedef struct {
@@ -51,6 +57,7 @@ typedef struct
 {
     char tipoMSG[100];
     char conteudo[400];
+    ClienteDados clienteDados;
     Topico topico;
 }Mensagem;
 
@@ -69,6 +76,7 @@ typedef struct
     ClienteDados cd[MAX_USERS];
     TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS]; // <- fica estE?
     int pipeCliente[MAX_USERS];
+    Subscribe sub[MAX_LINHAS_TOPICOS];
     pthread_t tid_Cliente[MAX_USERS];
     int continua;
     int index;
@@ -95,15 +103,20 @@ typedef struct
 void Menu();
 void trataComandos(ThreadData *td);
 void mostraClientes(ThreadData *td);
-void incializaTabelaClientes(ThreadData *td);
+void inicializaTabelaClientes(ThreadData *td);
 void mostraTopicos(ThreadData *td);
 void mostraMensagens(ThreadData *td,const char* topics);
-void incializaTabelaTopicos(ThreadData *td);
+void inicializaTabelaTopicos(ThreadData *td);
+void inicializaTabelaSubscricoes(ThreadData *td);
 void respostaTopicos(ThreadData *td, int pipeClienteResp);
 void inicializaPipes(ThreadData* td);
 void mostraEstados(ThreadData *td);
 void bloqueiaTopicos(ThreadData *td,const char* topics);
 void desbloqueiaTopicos(ThreadData *td, const char* topics);
+void mostraTabela(ThreadData *td);
+void mostraSubscribes(ThreadData *td);
+
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);
+void *trataTempoDeVida(void* td);

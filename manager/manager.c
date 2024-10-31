@@ -1,18 +1,13 @@
 #include "../manager/header/manager.h"
 
-
-//usar alarm para o tempo de vida das mensagens...
-//ver como colocar depois...
-//ou usar uma thread para fazer isto.. 
-//ver qual a melhor solução depois
 int main(int argc, char* args[]){
-    pthread_t tid_trataCliente;
+    pthread_t tid_trataCliente, tid_tempoVida;
     int serverPipe;
     //ClienteDados cd[MAX_USERS];
     ThreadData td; //= {.cd = cd};
-    incializaTabelaClientes(&td);
-    incializaTabelaTopicos(&td);
-
+    inicializaTabelaClientes(&td);
+    inicializaTabelaTopicos(&td);
+    inicializaTabelaSubscricoes(&td);
 
     //######################################
     //#                                    #
@@ -41,7 +36,11 @@ int main(int argc, char* args[]){
                     trataClientes,
                     (void *) &td
                     ); //thread para tratar clientes
-    
+    pthread_create(&tid_tempoVida,
+                    NULL,
+                    trataTempoDeVida,
+                    (void *) &td
+                    );
 
     
 
@@ -156,6 +155,12 @@ void trataComandos(ThreadData* td){
         printf("[RECEBI] %s\n",comando);
         mostraEstados(td);
     }
+    else if(strcmp(comando,"tabela") == 0) {
+        mostraTabela(td);
+    }
+    else if(strcmp(comando,"subs") == 0) {
+        mostraSubscribes(td);
+    }
     //COMANDO PARA TERMINAR O MANAGER E INFORMAR OS FEED'S
     else if(strcmp(comando,"close") == 0){
         td->continua = 0;
@@ -172,6 +177,45 @@ void trataComandos(ThreadData* td){
         write(td->pipeServer, "", sizeof("")); //só para destrancar o pipe na thread
     }
 
+}
+
+
+void *trataTempoDeVida(void* tdt) {
+    ThreadData *td = (ThreadData*)tdt;
+    while(td->continua == 1) {
+
+        for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+            if (strcmp(td->topicoTabela[i].mensagem, "-1") != 0 &&
+                td->topicoTabela[i].duracao > 0) {
+                    td->topicoTabela[i].duracao--;
+            }
+            if (strcmp(td->topicoTabela[i].mensagem, "-1") != 0 &&
+                td->topicoTabela[i].duracao == 0) {
+
+
+                strcpy(td->topicoTabela[i].mensagem, "-1"); //remove mensagem
+                td->topicoTabela[i].duracao = 0;               //coloca duracao a zero
+                if(td->topicoTabela[i].nMensagem > 0) {
+                    td->topicoTabela[i].nMensagem--; //Desconta no nMensagens
+                }
+                printf("apaguei mensagem do topico: %s\n", td->topicoTabela[i].topico);
+            }
+        }
+        sleep(1);
+
+
+    }
+
+
+}
+void mostraTabela(ThreadData *td) {
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        printf("|%s|", td->topicoTabela[i].topico);
+        printf("|%d|", td->topicoTabela[i].nMensagem);
+        printf("|%s|", td->topicoTabela[i].mensagem);
+        printf("|%d|\n", td->topicoTabela[i].duracao);
+
+    }
 }
 
 
@@ -245,7 +289,8 @@ void *trataComandosCliente(void *td){
                     }
                     if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0)
                         tdC->topicoTabela[i].nMensagem++; //incremento nMensages
-                    if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0) {
+                    if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0 &&
+                        strcmp(tdC->topicoTabela[i].mensagem,"-1") == 0) {
                         strcpy(tdC->topicoTabela[i].mensagem,msg.topico.mensagem);
                         tdC->topicoTabela[i].duracao = msg.topico.duracao;
                         escreveuMsg = 1;
@@ -273,8 +318,23 @@ void *trataComandosCliente(void *td){
         }
 
         //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
-        else if (strcmp("subscribe",msg.tipoMSG)==0)
+        else if (strcmp("subscribe",msg.tipoMSG)==0) //rever isto...
         {
+            for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+                if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0) {
+                    for (int j = 0; j < MAX_LINHAS_TOPICOS; j++) {
+                        if (strcmp(tdC->sub[j].userSubscrito,"-1") == 0) {
+                            strcpy(tdC->sub[j].userSubscrito,msg.clienteDados.nome);
+                            strcpy(tdC->sub[j].topico,msg.topico.topico);
+                            printf("[SUBSCRIBE] %s\n",tdC->sub[j].topico);
+                            printf("[SUBSCRIBE] %s\n",tdC->sub[j].userSubscrito);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
         //TRATA DO COMANDO UNSUBSCRIBE DO CLIENTE
@@ -388,7 +448,14 @@ void mostraEstados(ThreadData *td) {
         }
     }
 }
-void incializaTabelaClientes(ThreadData *td){
+void mostraSubscribes(ThreadData *td) {
+    for (int i = 0 ; i < MAX_LINHAS_TOPICOS ; i++) {
+        if (strcmp(td->sub[i].topico,"-1") != 0) {
+            printf("| %-20s | %-20s |\n", td->sub[i].topico,td->sub[i].userSubscrito);
+        }
+    }
+}
+void inicializaTabelaClientes(ThreadData *td){
 
     for (int i = 0; i < MAX_USERS; i++)
     {
@@ -397,7 +464,7 @@ void incializaTabelaClientes(ThreadData *td){
         strcpy(td->cd[i].clientePipe,"-1");
     }
 }
-void incializaTabelaTopicos(ThreadData *td){
+void inicializaTabelaTopicos(ThreadData *td){
 
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
@@ -406,6 +473,14 @@ void incializaTabelaTopicos(ThreadData *td){
         strcpy(td->topicoTabela[i].mensagem,"-1");
         td->topicoTabela[i].duracao = 0;
         td->topicoTabela[i].estados = 0;
+        strcpy(td->topicoTabela[i].autor,"-1");
+
+    }
+}
+void inicializaTabelaSubscricoes(ThreadData *td) {
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        strcpy(td->sub[i].topico,"-1");
+        strcpy(td->sub[i].userSubscrito,"-1");
     }
 }
 void bloqueiaTopicos(ThreadData *td, const char* topics) {
@@ -442,6 +517,7 @@ void Menu(){
     printf("\t\e[0;32m| \e[1;34mlock <topico>     \e[1;32m- Bloqueia novas mensagens para para o topico selecionado.  \e[0;32m|\e[0m\n");
     printf("\t\e[0;32m| \e[1;34munlock <topico>   \e[1;32m- Desbloqueia topico.                                       \e[0;32m|\e[0m\n");
     printf("\t\e[0;32m| \e[1;34mstatus            \e[1;32m- Mostra o estado dos topicos.                              \e[0;32m|\e[0m\n");
+    printf("\t\e[0;32m| \e[1;34msubs              \e[1;32m- Mostra as subscricoes dos utilizadores.                   \e[0;32m|\e[0m\n");
     printf("\t\e[0;32m| \e[1;34mclose             \e[1;32m- Encerra a plataforma.                                     \e[0;32m|\e[0m\n");
     printf("\t\e[0;32m+-------------------------------------------------------------------------------+\e[0m\n");
     printf("#> ");
