@@ -116,7 +116,7 @@ void trataComandos(ThreadFeedData *tfd){
             estadoOkay = 0;
         }*/
             strcpy(msg.topico.mensagem,mensagem);
-
+            printf("[CLIENTE] %s",msg.clienteDados.nome);
         /*if(estadoOkay == 1) {*/
             write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
         //}

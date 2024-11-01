@@ -1,5 +1,7 @@
 #include "../manager/header/manager.h"
 
+
+
 int main(int argc, char* args[]){
     pthread_t tid_trataCliente, tid_tempoVida;
     int serverPipe;
@@ -8,7 +10,8 @@ int main(int argc, char* args[]){
     inicializaTabelaClientes(&td);
     inicializaTabelaTopicos(&td);
     inicializaTabelaSubscricoes(&td);
-
+    criaVariavelAmbiente();
+    trataLerMensagens(&td);
     //######################################
     //#                                    #
     //#       CRIAÇÃO NAMEDPIPPES          #
@@ -212,6 +215,7 @@ void *trataTempoDeVida(void* tdt) {
 void mostraTabela(ThreadData *td) {
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         printf("|%s|", td->topicoTabela[i].topico);
+        printf("|%s|", td->topicoTabela[i].autor);
         printf("|%d|", td->topicoTabela[i].nMensagem);
         printf("|%s|", td->topicoTabela[i].mensagem);
         printf("|%d|\n", td->topicoTabela[i].duracao);
@@ -310,7 +314,7 @@ void *trataComandosCliente(void *td){
                         if (strcmp(tdC->topicoTabela[j].mensagem,"-1") == 0) {
                             strcpy(tdC->topicoTabela[j].mensagem,msg.topico.mensagem);
                             tdC->topicoTabela[j].duracao = msg.topico.duracao;
-                            strcpy(tdC->topicoTabela[i].autor,msg.clienteDados.nome);
+                            strcpy(tdC->topicoTabela[j].autor,msg.clienteDados.nome);
                             break;
                         }
                     }
@@ -370,15 +374,25 @@ void *trataComandosCliente(void *td){
     }
     
 }
+void criaVariavelAmbiente() {
+    if (putenv("MSG_FICH=../mensagens.txt") != 0) {
+        printf("[ERRO] Erro ao criar variavel de ambiente.\n");
+        exit(99);
+    }
+    //printf("MSG_FICH = %s\n", getenv("MSG_FICH"));
+    system("export MSG_FICH");
+}
 void trataGuardarMensagens(ThreadData *td){
     int fd;
     char duracao[30];
-    fd = open(FILENAME, O_WRONLY | O_CREAT);
+    char *file = getenv("MSG_FICH");
+    fd = open(file, O_WRONLY | O_CREAT, 0640);
     if (fd == -1)
         printf("[ERRO] ao abrir o ficheiro.");
 
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
-        if (strcmp(td->topicoTabela[i].topico,"-1") != 0){
+        if (strcmp(td->topicoTabela[i].topico,"-1") != 0 &&
+            strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
             write(fd,td->topicoTabela[i].topico,strlen(td->topicoTabela[i].topico));
             write(fd," ",1);
             write(fd,td->topicoTabela[i].autor,strlen(td->topicoTabela[i].autor));
@@ -391,6 +405,19 @@ void trataGuardarMensagens(ThreadData *td){
         }
     }
     close(fd);
+}
+void trataLerMensagens(ThreadData *td) {
+    int fd;
+    char* file = getenv("MSG_FICH");
+    fd = open(file,O_RDONLY);
+    //while (fd != -1) {}
+
+
+
+    // for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+    //
+    // }
+
 }
 void trataRemoverSubscriber(ThreadData *td, Mensagem *msg) {
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
