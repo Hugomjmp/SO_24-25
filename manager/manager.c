@@ -407,17 +407,64 @@ void trataGuardarMensagens(ThreadData *td){
     close(fd);
 }
 void trataLerMensagens(ThreadData *td) {
-    int fd;
+    FILE *fd;
+    int duracao = 0;
+    char linha[430];
+    char autor[50],topico[MAX_CARACTER_TOPICO],mensagem[MAX_CARACTER_MENSAGEM];
+    int linhas = 1;
     char* file = getenv("MSG_FICH");
-    fd = open(file,O_RDONLY);
-    //while (fd != -1) {}
+    fd = fopen(file,"r");
+    if (fd == NULL) {
+        printf("[ERRO] Erro ao abrir o ficheiro\n");
+    }
 
+    while (fgets(linha,430,fd) != NULL) {
+        char *resultado = strtok(linha, " "); //para separar as palavras
+        //estrair topico
+        if(resultado != NULL) {
+            strcpy(topico, resultado);
+        }
 
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(autor, resultado);
+        }
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            duracao = atoi(resultado);
+        }
+        resultado = strtok(NULL, "");
+        if(resultado != NULL) {
+            strcpy(mensagem, resultado);
+        }
+        printf("-> %s %lu\n",topico,sizeof(topico));
+        printf("-> %s %lu\n",autor,  sizeof(autor));
+        printf("-> %d\n",duracao);
+        printf("-> %s  %lu\n",mensagem,sizeof(mensagem));
 
-    // for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
-    //
-    // }
+        printf("%s",linha);
+        printf("<- nLinha %d\n",linhas);
+        linhas++;
 
+        for(int i = 0; i < MAX_CARACTER_TOPICO; i++) {
+            if(strcmp(td->topicoTabela[i].topico,"-1") == 0) {
+                for (int j = i; j < i + 5; j++) {
+                    strncpy(td->topicoTabela[j].topico,topico,strlen(topico));
+                }
+                strncpy(td->topicoTabela[i].mensagem,mensagem, strlen(mensagem)-1);
+                strncpy(td->topicoTabela[i].autor,autor,strlen(autor));
+                td->topicoTabela[i].duracao = duracao;
+                break;
+            }
+            if(strcmp(td->topicoTabela[i].topico,topico) == 0 &&
+                strcmp(td->topicoTabela[i].mensagem,"-1") == 0) {
+                strncpy(td->topicoTabela[i].mensagem,mensagem, strlen(mensagem)-1);
+                strncpy(td->topicoTabela[i].autor,autor,strlen(autor));
+                td->topicoTabela[i].duracao = duracao;
+                break;
+            }
+        }
+    }
 }
 void trataRemoverSubscriber(ThreadData *td, Mensagem *msg) {
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
