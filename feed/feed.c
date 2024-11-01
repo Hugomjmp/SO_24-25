@@ -140,6 +140,16 @@ void trataComandos(ThreadFeedData *tfd){
         //printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"unsubscribe") == 0){ //trata do comando unsubscribe
         strcpy(msg.tipoMSG, comando);
+
+        //estrair topico
+        resultado = strtok(NULL, " ");
+        if(resultado != NULL) {
+            strcpy(topico, resultado);
+        }
+
+        strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
+        strcpy(msg.topico.topico,topico);
+
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
         printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"exit") == 0){ //trata do comando exit

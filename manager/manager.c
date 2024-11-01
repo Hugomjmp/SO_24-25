@@ -353,10 +353,7 @@ void *trataComandosCliente(void *td){
         else if (strcmp("unsubscribe",msg.tipoMSG)==0)
         {
             trataRemoverSubscriber(tdC,&msg);
-
-
-
-            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+            //printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
         //TRATA DO COMANDO EXIT DO CLIENTE
         else if (strcmp("exit",msg.tipoMSG) == 0)
@@ -369,7 +366,15 @@ void *trataComandosCliente(void *td){
     }
     
 }
-void trataRemoverSubscriber(ThreadData *tdC, Mensagem *msg) {
+void trataRemoverSubscriber(ThreadData *td, Mensagem *msg) {
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        if (strcmp(td->sub[i].topico,msg->topico.topico) == 0 &&
+            strcmp(td->sub[i].userSubscrito, msg->clienteDados.nome) == 0) { // Se existir na tabela subs
+            strcpy(td->sub[i].userSubscrito,"-1");
+            strcpy(td->sub[i].topico,"-1");
+            break;
+        }
+    }
 
 }
 void trataCriarSubscriber(ThreadData* td,Mensagem* msg) {

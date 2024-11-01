@@ -84,22 +84,6 @@ typedef struct
 
 
 
-
-
-
-
-
-
-
-
-// controlo do feed...
-// typedef struct
-// {
-//     int valor;
-//     int continua;
-// }ThreadFeedData;
-
-
 void Menu();
 void trataComandos(ThreadData *td);
 void mostraClientes(ThreadData *td);
@@ -116,7 +100,7 @@ void desbloqueiaTopicos(ThreadData *td, const char* topics);
 void mostraTabela(ThreadData *td);
 void mostraSubscribes(ThreadData *td);
 void trataCriarSubscriber(ThreadData* td,Mensagem* msg);
-void trataRemoverSubscriber(ThreadData *tdC, Mensagem *msg);
+void trataRemoverSubscriber(ThreadData *td, Mensagem *msg);
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);
