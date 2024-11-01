@@ -228,11 +228,15 @@ void *trataTempoDeVida(void* tdt) {
 void mostraTabela(ThreadData *td) {
     pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
-        printf("|%s|", td->topicoTabela[i].topico);
-        printf("|%s|", td->topicoTabela[i].autor);
-        printf("|%d|", td->topicoTabela[i].nMensagem);
-        printf("|%s|", td->topicoTabela[i].mensagem);
-        printf("|%d|\n", td->topicoTabela[i].duracao);
+        if (strcmp(td->topicoTabela[i].topico, "-1") != 0) {
+            printf("|%s|", td->topicoTabela[i].topico);
+            printf("%s|", td->topicoTabela[i].autor);
+            printf("%d|", td->topicoTabela[i].nMensagem);
+            printf("%s|", td->topicoTabela[i].mensagem);
+            printf("%d|", td->topicoTabela[i].duracao);
+            printf("%d|\n", td->topicoTabela[i].estados);
+        }
+
 
     }
     pthread_mutex_unlock(td->mutex);
@@ -272,6 +276,7 @@ void inicializaPipes(ThreadData* td) {
 void *trataComandosCliente(void *td){
     ThreadData *tdC = (ThreadData*) td;
     Mensagem msg;
+    Resposta rsp;
     int nMsg = 0;
     int subscribe;
     int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
@@ -308,7 +313,7 @@ void *trataComandosCliente(void *td){
             pthread_mutex_lock(tdC->mutex);
             for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
                 // para a primeira vez...
-                if (strcmp(tdC->topicoTabela[i].topico,"-1") == 0){
+                if (strcmp(tdC->topicoTabela[i].topico,"-1") == 0 && escreveuMsg == 0){
                     for (int j = i; j < i+5; j++) {
                         strcpy(tdC->topicoTabela[j].topico,msg.topico.topico);
                     }
@@ -319,13 +324,23 @@ void *trataComandosCliente(void *td){
                         strcpy(tdC->topicoTabela[i].mensagem,msg.topico.mensagem);
                         strcpy(tdC->topicoTabela[i].autor,msg.clienteDados.nome);
                         tdC->topicoTabela[i].duracao = msg.topico.duracao;
-
                         escreveuMsg = 1;
-                        break;
+                        //break;
                     }
                 }
+                // faz a segunda, terceira.... vez
                 if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0
-                    && escreveuMsg == 0 /*&& tdC->topicoTabela[i].estados*/) {
+                    && escreveuMsg == 0) {
+                    if (tdC->topicoTabela[i].estados == 1) {
+                        for(int k = 0; k < MAX_USERS; k++) {
+                            if(strcmp(tdC->cd[k].nome, msg.clienteDados.nome) == 0) {
+                                rsp.tipoResposta = 1;
+                                int fd = open(tdC->cd[k].clientePipe, O_WRONLY);
+                                write(fd,&rsp,sizeof(Resposta));
+                            }
+                        }
+                        break;
+                    }
                     //printf("CHEGUEI AQUI!\n");
                     //fflush(stdout);
                     tdC->topicoTabela[i].nMensagem++; //ver isto

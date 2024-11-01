@@ -184,7 +184,8 @@ void *trataMensagens(void *tfd_aux){
                 break;
             }
             case 1: {
-
+                printf("O topico encontra-se bloqueado pelo Administrador\n");
+                printf("Tente mais tarde.\n");
                 break;
             }
             //DIZ QUE HOUVE UM UTILIZADOR QUE FOI REMOVIDO
