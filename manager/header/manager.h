@@ -72,15 +72,16 @@ typedef struct
 
 typedef struct
 {
-    int pipeServer;
-    int pipeServerCliente;
-    ClienteDados cd[MAX_USERS];
-    TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS]; // <- fica estE?
-    int pipeCliente[MAX_USERS];
-    Subscribe sub[MAX_LINHAS_TOPICOS];
-    pthread_t tid_Cliente[MAX_USERS];
-    int continua;
-    int index;
+    int pipeServer;                                 //NamedPipe do Servidor só para efeitos de "login"
+    int pipeServerCliente;                          //NamedPipe onde recebe mensages dos clientes
+    ClienteDados cd[MAX_USERS];                     //Array de estrutura com dados dos clientes
+    TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS];  //Array de estrutura com dados dos topicos
+    int pipeCliente[MAX_USERS];                     //Array de NamedPipes dos clientes
+    Subscribe sub[MAX_LINHAS_TOPICOS];              //Array de estrutura das subscrições
+    pthread_t tid_Cliente[MAX_USERS];               //Contém os Handles das threads
+    pthread_mutex_t *mutex;                         //Contém o mutex para trancar acessos aos dados
+    int continua;                                   //Para terminar o programa
+    int index;                                      //Auxiliar...
 }ThreadData;
 
 

@@ -48,7 +48,18 @@ int main(int argc, char* args[]){
     
 
     //--------------------------------------
+    //######################################
+    //#                                    #
+    //#         CRIAÇÃO MUTEX              #
+    //#                                    #
+    //######################################
 
+    pthread_mutex_t mutex;
+    pthread_mutex_init(&mutex, NULL);
+    td.mutex = &mutex;
+
+
+    //--------------------------------------
     while (td.continua == 1) //tratamento dos comandos
     {
         printf("-> %d", td.continua);
@@ -63,6 +74,7 @@ int main(int argc, char* args[]){
     close(td.pipeServerCliente);
     unlink(SERVER_PIPE);
     unlink(SERVER_PIPECLIENTE);
+    pthread_mutex_destroy(td.mutex);
     pthread_join(tid_trataCliente, NULL);
     return 1;
 
@@ -187,7 +199,7 @@ void trataComandos(ThreadData* td){
 void *trataTempoDeVida(void* tdt) {
     ThreadData *td = (ThreadData*)tdt;
     while(td->continua == 1) {
-
+        pthread_mutex_lock(td->mutex);
         for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
             if (strcmp(td->topicoTabela[i].mensagem, "-1") != 0 &&
                 td->topicoTabela[i].duracao > 0) {
@@ -205,6 +217,7 @@ void *trataTempoDeVida(void* tdt) {
                 printf("apaguei mensagem do topico: %s\n", td->topicoTabela[i].topico);
             }
         }
+        pthread_mutex_unlock(td->mutex);
         sleep(1);
 
 
@@ -213,6 +226,7 @@ void *trataTempoDeVida(void* tdt) {
 
 }
 void mostraTabela(ThreadData *td) {
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         printf("|%s|", td->topicoTabela[i].topico);
         printf("|%s|", td->topicoTabela[i].autor);
@@ -221,6 +235,7 @@ void mostraTabela(ThreadData *td) {
         printf("|%d|\n", td->topicoTabela[i].duracao);
 
     }
+    pthread_mutex_unlock(td->mutex);
 }
 
 
@@ -234,14 +249,17 @@ void *trataClientes(void *tdp){
     inicializaPipes(td);
     while (td->continua == 1)
     {
+
         read(td->pipeServer, &cd[i], sizeof(ClienteDados));
         //printf("RECEBI: '%s' com PID '%d' com pippe '%s'\n", cd[i].nome, cd[i].PID, cd[i].clientePipe);
         fflush(stdout);
+        pthread_mutex_lock(td->mutex);
         strcpy(td->cd[i].nome,cd[i].nome);
         td->cd[i].PID = cd[i].PID;
         strcpy(td->cd[i].clientePipe, cd[i].clientePipe); // para aparecer na tabela depois
         td->index = i;
-        pthread_create(&td->tid_Cliente[i], NULL, trataComandosCliente, (void *) td); 
+        pthread_create(&td->tid_Cliente[i], NULL, trataComandosCliente, (void *) td);
+        pthread_mutex_unlock(td->mutex);
         i++; // não esquecer que não pode passar do max_users
     }
     
@@ -287,7 +305,7 @@ void *trataComandosCliente(void *td){
             printf("[RECEBI DO CLIENTE DURACAO] %d\n",msg.topico.duracao);
             printf("[RECEBI DO CLIENTE MENSAGEM] %s\n",msg.topico.mensagem);
 
-
+            pthread_mutex_lock(tdC->mutex);
             for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
                 // para a primeira vez...
                 if (strcmp(tdC->topicoTabela[i].topico,"-1") == 0){
@@ -306,9 +324,10 @@ void *trataComandosCliente(void *td){
                         break;
                     }
                 }
-                if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0 && escreveuMsg == 0) {
-                    printf("CHEGUEI AQUI!\n");
-                    fflush(stdout);
+                if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0
+                    && escreveuMsg == 0 /*&& tdC->topicoTabela[i].estados*/) {
+                    //printf("CHEGUEI AQUI!\n");
+                    //fflush(stdout);
                     tdC->topicoTabela[i].nMensagem++; //ver isto
                     for (int j = i; j < i + 5; j++) {
                         if (strcmp(tdC->topicoTabela[j].mensagem,"-1") == 0) {
@@ -325,6 +344,7 @@ void *trataComandosCliente(void *td){
                 }
 
             }
+            pthread_mutex_unlock(tdC->mutex);
         }
 
         //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
@@ -389,7 +409,7 @@ void trataGuardarMensagens(ThreadData *td){
     fd = open(file, O_WRONLY | O_CREAT, 0640);
     if (fd == -1)
         printf("[ERRO] ao abrir o ficheiro.");
-
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         if (strcmp(td->topicoTabela[i].topico,"-1") != 0 &&
             strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
@@ -404,11 +424,13 @@ void trataGuardarMensagens(ThreadData *td){
             write(fd,"\n",1);
         }
     }
+    pthread_mutex_unlock(td->mutex);
     close(fd);
 }
 void trataLerMensagens(ThreadData *td) {
     FILE *fd;
     int duracao = 0;
+    int escreveuMsg;
     char linha[430];
     char autor[50],topico[MAX_CARACTER_TOPICO],mensagem[MAX_CARACTER_MENSAGEM];
     int linhas = 1;
@@ -445,6 +467,7 @@ void trataLerMensagens(ThreadData *td) {
         printf("%s",linha);
         printf("<- nLinha %d\n",linhas);
         linhas++;
+        escreveuMsg=0;
 
         for(int i = 0; i < MAX_CARACTER_TOPICO; i++) {
             if(strcmp(td->topicoTabela[i].topico,"-1") == 0) {
@@ -454,19 +477,29 @@ void trataLerMensagens(ThreadData *td) {
                 strncpy(td->topicoTabela[i].mensagem,mensagem, strlen(mensagem)-1);
                 strncpy(td->topicoTabela[i].autor,autor,strlen(autor));
                 td->topicoTabela[i].duracao = duracao;
+                td->topicoTabela[i].nMensagem++;
+                escreveuMsg = 1;
                 break;
             }
-            if(strcmp(td->topicoTabela[i].topico,topico) == 0 &&
-                strcmp(td->topicoTabela[i].mensagem,"-1") == 0) {
-                strncpy(td->topicoTabela[i].mensagem,mensagem, strlen(mensagem)-1);
-                strncpy(td->topicoTabela[i].autor,autor,strlen(autor));
-                td->topicoTabela[i].duracao = duracao;
+            if(strcmp(td->topicoTabela[i].topico,topico) == 0 && escreveuMsg == 0) {
+                td->topicoTabela[i].nMensagem++;
+                for (int j = i; j < i + 5; j++) {
+                    if (strcmp(td->topicoTabela[j].mensagem,"-1") == 0) {
+                        strncpy(td->topicoTabela[j].mensagem,mensagem, strlen(mensagem)-1);
+                        strncpy(td->topicoTabela[j].autor,autor,strlen(autor));
+                        td->topicoTabela[j].duracao = duracao;
+                        break;
+                    }
+                }
                 break;
             }
         }
+
     }
 }
+
 void trataRemoverSubscriber(ThreadData *td, Mensagem *msg) {
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         if (strcmp(td->sub[i].topico,msg->topico.topico) == 0 &&
             strcmp(td->sub[i].userSubscrito, msg->clienteDados.nome) == 0) { // Se existir na tabela subs
@@ -475,10 +508,12 @@ void trataRemoverSubscriber(ThreadData *td, Mensagem *msg) {
             break;
         }
     }
+    pthread_mutex_unlock(td->mutex);
 
 }
 void trataCriarSubscriber(ThreadData* td,Mensagem* msg) {
     int subscribe = 0;
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         if (strcmp(td->topicoTabela[i].topico,msg->topico.topico) == 0) {
             for (int k = 0; k < MAX_LINHAS_TOPICOS; k++) {
@@ -502,11 +537,12 @@ void trataCriarSubscriber(ThreadData* td,Mensagem* msg) {
             }
         }
     }
-
+    pthread_mutex_unlock(td->mutex);
 }
 void respostaTopicos(ThreadData *td, int pipeClienteResp){
     Resposta rsp;
     rsp.tipoResposta = 0;
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
         strcpy(rsp.topicoTabela[i].topico,td->topicoTabela[i].topico);
@@ -519,13 +555,14 @@ void respostaTopicos(ThreadData *td, int pipeClienteResp){
             rsp.topicos[i].duracao);
         fflush(stdout);*/
     }
-    
+    pthread_mutex_unlock(td->mutex);
     /*int res = */write(pipeClienteResp,&rsp,sizeof(Resposta));
 }
 void mostraClientes(ThreadData *td){
     printf("\t\t+------------------+-+------------+-+----------------------+\n");
     printf("\t\t| Nome             | | Process ID | | Pipe                 |\n");
     printf("\t\t+------------------+-+------------+-+----------------------+\n");
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_USERS; i++)
     {
         if (strcmp(td->cd[i].nome, "-1") != 0){
@@ -533,12 +570,14 @@ void mostraClientes(ThreadData *td){
             printf("\t\t+------------------+-+------------+-+----------------------+\n");
         }
     }
+    pthread_mutex_unlock(td->mutex);
 }
 void mostraTopicos(ThreadData *td){
 
     printf("+------------------------------+\n");
     printf("| TOPICO               | N_MSG |\n");
     printf("+------------------------------+\n");
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
         if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
@@ -555,6 +594,7 @@ void mostraTopicos(ThreadData *td){
             printf("+------------------------------+\n");
         }
     }
+    pthread_mutex_unlock(td->mutex);
 }
 void mostraMensagens(ThreadData *td,const char* topics) {
     printf("+---------------------------------------------------------------------------"
@@ -562,6 +602,7 @@ void mostraMensagens(ThreadData *td,const char* topics) {
     printf("| TOPICO               | MENSAGEM \t\t\t\t\t\t\t\t\t\t\t    |\n");
     printf("+---------------------------------------------------------------------------"
            "------------------------------------------------+\n");
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
         if (strcmp(td->topicoTabela[i].topico,topics) == 0 &&
@@ -576,12 +617,14 @@ void mostraMensagens(ThreadData *td,const char* topics) {
                            "------------------------------------------------+\n");
         }
     }
+    pthread_mutex_unlock(td->mutex);
 }
 void mostraEstados(ThreadData *td) {
     char estado[20];
     printf("+--------------------------------------+\n");
     printf("| TOPICO               | Estado        |\n");
     printf("+--------------------------------------+\n");
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
         if (strcmp(td->topicoTabela[i].topico,"-1") != 0 && strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
@@ -598,12 +641,14 @@ void mostraEstados(ThreadData *td) {
             printf("+--------------------------------------+\n");
         }
     }
+    pthread_mutex_unlock(td->mutex);
 }
 void mostraSubscribes(ThreadData *td) {
 
     printf("+-----------------------------------+\n");
     printf("| TOPICO               | SUBSCRIBER |\n");
     printf("+-----------------------------------+\n");
+    pthread_mutex_lock(td->mutex);
     for (int i = 0 ; i < MAX_LINHAS_TOPICOS ; i++) {
         if (strcmp(td->sub[i].topico,"-1") != 0) {
             printf("| %-20s | %-10s |\n", td->sub[i].topico,td->sub[i].userSubscrito);
@@ -611,6 +656,7 @@ void mostraSubscribes(ThreadData *td) {
         }
 
     }
+    pthread_mutex_unlock(td->mutex);
 }
 void inicializaTabelaClientes(ThreadData *td){
 
@@ -641,16 +687,19 @@ void inicializaTabelaSubscricoes(ThreadData *td) {
     }
 }
 void bloqueiaTopicos(ThreadData *td, const char* topics) {
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         if (strcmp(td->topicoTabela[i].topico,topics) == 0 &&
-                    strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
+        strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
             if (i >= 0 && strcmp(td->topicoTabela[i].topico,td->topicoTabela[i-1].topico) != 0) {
                 td->topicoTabela[i].estados = 1;
             }
-                    }
+        }
     }
+    pthread_mutex_unlock(td->mutex);
 }
 void desbloqueiaTopicos(ThreadData *td, const char* topics) {
+    pthread_mutex_lock(td->mutex);
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
         if (strcmp(td->topicoTabela[i].topico,topics) == 0 &&
                     strcmp(td->topicoTabela[i].mensagem,"-1") != 0) {
@@ -659,6 +708,7 @@ void desbloqueiaTopicos(ThreadData *td, const char* topics) {
             }
                     }
     }
+    pthread_mutex_unlock(td->mutex);
 }
 
 void Menu(){

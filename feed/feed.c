@@ -206,34 +206,35 @@ void *trataMensagens(void *tfd_aux){
     }
     
 }
+//\e[0;35m
 void mostraTopicosfeed(Resposta *rsp) {
 
-    printf("+---------------------------------------------------------------------------"
-"------------------------------------------------+\n");
-    printf("| TOPICO               | N_MSG | MENSAGEM \t\t\t\t\t\t\t\t\t  | DURACAO |\n");
-    printf("+---------------------------------------------------------------------------"
-           "------------------------------------------------+\n");
+    printf("\e[0;32m\e[40m+---------------------------------------------------------------------------"
+"------------------------------------------------+\e[0m\n");
+    printf("\e[0;32m\e[40m| TOPICO               | N_MSG | MENSAGEM 									  | DURACAO |\e[0m\n");
+    printf("\e[0;32m\e[40m+---------------------------------------------------------------------------"
+           "------------------------------------------------+\e[0m\n");
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++)
     {
 
         if (strcmp(rsp->topicoTabela[i].topico,"-1") != 0 /*&& strcmp(rsp->topicoTabela[i].mensagem,"-1") != 0*/) {
 
             if (i >= 0 && strcmp(rsp->topicoTabela[i].topico,rsp->topicoTabela[i-1].topico) != 0) {
-                printf("| %-20s |", rsp->topicoTabela[i].topico);
+                printf("\e[0;32m\e[40m|\e[0m\e[40m\e[1;37m %-20s \e[0;32m\e[40m|\e[0m", rsp->topicoTabela[i].topico);
             }else {
-                printf("| %-20s |", "");
+                printf("\e[0;32m\e[40m|\e[0m\e[40m %-20s \e[0;32m\e[40m|\e[0m", "");
             }
             if (i >= 0 && rsp->topicoTabela[i].nMensagem != 0) {
-                printf(" %-5d |", rsp->topicoTabela[i].nMensagem);
+                printf("\e[40m \e[1;37m%-5d \e[0;32m\e[40m|\e[0m", rsp->topicoTabela[i].nMensagem);
             }else {
-                printf(" %-5s |", "");
+                printf("\e[40m \e[1;37m%-5s \e[0;32m\e[40m|\e[0m", "");
             }
-            printf(" %-80s | %-7d |\n" ,
+            printf("\e[40m \e[1;36m%-80s \e[0;32m\e[40m| \e[0m\e[40m\e[1;37m%-7d \e[0;32m\e[40m|\e[0m\n" ,
                     rsp->topicoTabela[i].mensagem,
                     rsp->topicoTabela[i].duracao);
 
-            printf("+---------------------------------------------------------------------------"
-                           "------------------------------------------------+\n");
+            printf("\e[0;32m\e[40m+---------------------------------------------------------------------------"
+                           "------------------------------------------------+\e[0m\n");
         }
     }
 
