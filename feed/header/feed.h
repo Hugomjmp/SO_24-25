@@ -69,7 +69,7 @@ typedef struct
 {
     int tipoResposta;
     TopicoTabela topicoTabela[MAX_LINHAS_TOPICOS];
-    char msgRsp[100];
+    char msgRsp[460];
 }Resposta;
 
 
@@ -77,5 +77,4 @@ void *trataMensagens(void *tfd_aux);
 void *trataFecho(void *tfd);
 void Menu();
 void trataComandos();
-void userRemovido(int valor, siginfo_t *si, void *u);
 void mostraTopicosfeed(Resposta *rsp);

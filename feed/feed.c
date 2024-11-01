@@ -7,10 +7,6 @@ int main (int argc, char* args[]){
     ClienteDados cd;
     ThreadFeedData tfd;
     pthread_t tid_recebeMensagens, tid_recebeFecho;
-    struct sigaction sa;
-    sa.sa_sigaction = userRemovido;
-    sa.sa_flags = SA_SIGINFO;
-    sigaction(SIGUSR1, &sa, NULL);
 
     if (argc != 2)
     {
@@ -51,6 +47,7 @@ int main (int argc, char* args[]){
     {
         Menu();
         trataComandos(&tfd);
+        sleep(1);
     }
     
 
@@ -188,6 +185,11 @@ void *trataMensagens(void *tfd_aux){
                 printf("Tente mais tarde.\n");
                 break;
             }
+            case 2: {
+                printf("AQUIIIII.\n");
+                printf("%s\n",rsp.msgRsp);
+                break;
+            }
             //DIZ QUE HOUVE UM UTILIZADOR QUE FOI REMOVIDO
             case 98: {
                 printf("O utilizador %s foi removido do servidor.\n", rsp.msgRsp);
@@ -240,12 +242,6 @@ void mostraTopicosfeed(Resposta *rsp) {
     }
 
 }
-//Alertar o utilizador que foi removido
-void userRemovido(int sinal, siginfo_t *si, void *u){
-    printf("fui chamado com valor '%d'\n",si->si_value.sival_int);
-    //COMO IMPLEMENTAR AQUI O CONTINUA????
-}
-
 
 /*TODO*/
 //Colocar o Sigque a funcionar...
