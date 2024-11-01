@@ -82,6 +82,10 @@ void trataComandos(ThreadFeedData *tfd){
         //printf("[RECEBI] %s\n",comando);
     }else if(strncmp(comando,"msg", strlen("msg")) == 0){ //trata do comando msg
 
+        strcpy(topico, "");
+        strcpy(duracao, "");
+        strcpy(mensagem, "");
+
         //estrair topico
         resultado = strtok(NULL, " ");
         if(resultado != NULL) {
@@ -118,8 +122,12 @@ void trataComandos(ThreadFeedData *tfd){
 
 
 
-        printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"subscribe") == 0){ //trata do comando subscribe
+        //printf("[RECEBI] %s\n",comando);
+    }else if(strncmp(comando,"subscribe", strlen("subscribe")) == 0){ //trata do comando subscribe
+        strcpy(topico, "");
+        strcpy(mensagem, "");
+
+
         strcpy(msg.tipoMSG, comando);
         //estrair topico
         resultado = strtok(NULL, " ");
@@ -127,9 +135,9 @@ void trataComandos(ThreadFeedData *tfd){
             strcpy(topico, resultado);
         }
         strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
-        strcpy(msg.topico.mensagem,mensagem);
+        strcpy(msg.topico.topico,topico);
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
-        printf("[RECEBI] %s\n",comando);
+        //printf("[RECEBI] %s\n",comando);
     }else if(strcmp(comando,"unsubscribe") == 0){ //trata do comando unsubscribe
         strcpy(msg.tipoMSG, comando);
         write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));

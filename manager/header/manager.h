@@ -115,7 +115,8 @@ void bloqueiaTopicos(ThreadData *td,const char* topics);
 void desbloqueiaTopicos(ThreadData *td, const char* topics);
 void mostraTabela(ThreadData *td);
 void mostraSubscribes(ThreadData *td);
-
+void trataCriarSubscriber(ThreadData* td,Mensagem* msg);
+void trataRemoverSubscriber(ThreadData *tdC, Mensagem *msg);
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);

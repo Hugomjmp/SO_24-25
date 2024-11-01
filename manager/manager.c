@@ -250,6 +250,7 @@ void *trataComandosCliente(void *td){
     ThreadData *tdC = (ThreadData*) td;
     Mensagem msg;
     int nMsg = 0;
+    int subscribe;
     int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
     int escreveuMsg;
 
@@ -265,8 +266,9 @@ void *trataComandosCliente(void *td){
     {
         //printf("\nCHEGUEI ao READ\n");
         escreveuMsg = 0;
+        subscribe = 0;
         read(pipe, &msg, sizeof(Mensagem)); //recebe as mensagens de comando
-        printf("THREAD TRATACOMANDOS: %s\n", msg.tipoMSG);
+        //printf("THREAD TRATACOMANDOS: %s\n", msg.tipoMSG);
         fflush(stdout);
         //TRATA DO COMANDO TOPICS DO CLIENTE
         if (strcmp("topics",msg.tipoMSG)==0)
@@ -320,38 +322,82 @@ void *trataComandosCliente(void *td){
         //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
         else if (strcmp("subscribe",msg.tipoMSG)==0) //rever isto...
         {
-            for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+            trataCriarSubscriber(tdC, &msg);
+            /*for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
                 if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0) {
-                    for (int j = 0; j < MAX_LINHAS_TOPICOS; j++) {
-                        if (strcmp(tdC->sub[j].userSubscrito,"-1") == 0) {
-                            strcpy(tdC->sub[j].userSubscrito,msg.clienteDados.nome);
-                            strcpy(tdC->sub[j].topico,msg.topico.topico);
-                            printf("[SUBSCRIBE] %s\n",tdC->sub[j].topico);
-                            printf("[SUBSCRIBE] %s\n",tdC->sub[j].userSubscrito);
+                    for (int k = 0; k < MAX_LINHAS_TOPICOS; k++) {
+                        if (strcmp(tdC->sub[k].topico,msg.topico.topico) == 0) {
+                            printf("O User: %s ja e subscriber do topico %s.\n",msg.clienteDados.nome,msg.topico.topico);
+                            subscribe = 1;
                             break;
                         }
                     }
-                    break;
+                    if (subscribe == 0) {
+                        for (int j = 0; j < MAX_LINHAS_TOPICOS; j++) {
+                            if (strcmp(tdC->sub[j].userSubscrito,"-1") == 0) {
+                                strcpy(tdC->sub[j].userSubscrito,msg.clienteDados.nome);
+                                strcpy(tdC->sub[j].topico,msg.topico.topico);
+                                break;
+                            }
+                        }
+                        break;
+                    }else {
+                        break;
+                    }
                 }
-            }
+            }*/
 
-            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+            //printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
         //TRATA DO COMANDO UNSUBSCRIBE DO CLIENTE
         else if (strcmp("unsubscribe",msg.tipoMSG)==0)
         {
+            trataRemoverSubscriber(tdC,&msg);
+
+
+
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
         //TRATA DO COMANDO EXIT DO CLIENTE
-        else if (strcmp("exit",msg.tipoMSG)==0)
+        else if (strcmp("exit",msg.tipoMSG) == 0)
         {
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
             //tenho de retirar o cliente depois aqui se não fica em loop
-            // e informar os outros utilizadores
+            //e informar os outros utilizadores
         }
 
     }
     
+}
+void trataRemoverSubscriber(ThreadData *tdC, Mensagem *msg) {
+
+}
+void trataCriarSubscriber(ThreadData* td,Mensagem* msg) {
+    int subscribe = 0;
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        if (strcmp(td->topicoTabela[i].topico,msg->topico.topico) == 0) {
+            for (int k = 0; k < MAX_LINHAS_TOPICOS; k++) {
+                if (strcmp(td->sub[k].topico,msg->topico.topico) == 0) {
+                    printf("O User: %s ja e subscriber do topico %s.\n",msg->clienteDados.nome,msg->topico.topico);
+                    subscribe = 1;
+                    break;
+                }
+            }
+            if (subscribe == 0) {
+                for (int j = 0; j < MAX_LINHAS_TOPICOS; j++) {
+                    if (strcmp(td->sub[j].userSubscrito,"-1") == 0) {
+                        strcpy(td->sub[j].userSubscrito,msg->clienteDados.nome);
+                        strcpy(td->sub[j].topico,msg->topico.topico);
+                        break;
+                    }
+                }
+                break;
+            }else {
+                break;
+            }
+        }
+    }
+
 }
 void respostaTopicos(ThreadData *td, int pipeClienteResp){
     Resposta rsp;
@@ -449,10 +495,16 @@ void mostraEstados(ThreadData *td) {
     }
 }
 void mostraSubscribes(ThreadData *td) {
+
+    printf("+-----------------------------------+\n");
+    printf("| TOPICO               | SUBSCRIBER |\n");
+    printf("+-----------------------------------+\n");
     for (int i = 0 ; i < MAX_LINHAS_TOPICOS ; i++) {
         if (strcmp(td->sub[i].topico,"-1") != 0) {
-            printf("| %-20s | %-20s |\n", td->sub[i].topico,td->sub[i].userSubscrito);
+            printf("| %-20s | %-10s |\n", td->sub[i].topico,td->sub[i].userSubscrito);
+            printf("+-----------------------------------+\n");
         }
+
     }
 }
 void inicializaTabelaClientes(ThreadData *td){
