@@ -21,6 +21,7 @@
 #define SERVER_PIPE "../SERVER"
 #define CLIENTE_PIPE "../CLIENTE"
 #define SERVER_PIPECLIENTE "../SERVERCLIENTE"
+#define FILENAME "../mensagens.txt"
 //estruturas...
 
 //ESTRUTURA COM INFORMAÇÃO DOS CLIENTES
@@ -101,6 +102,7 @@ void mostraTabela(ThreadData *td);
 void mostraSubscribes(ThreadData *td);
 void trataCriarSubscriber(ThreadData* td,Mensagem* msg);
 void trataRemoverSubscriber(ThreadData *td, Mensagem *msg);
+void trataGuardarMensagens(ThreadData *td);
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);

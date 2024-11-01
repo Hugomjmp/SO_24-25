@@ -105,6 +105,7 @@ void trataComandos(ThreadFeedData *tfd){
 
             strcpy(msg.tipoMSG, comando);
             strcpy(msg.topico.topico,topico);
+            strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
             msg.topico.duracao = atoi(duracao);
 
         /*if(msg.topico.duracao > 0) {

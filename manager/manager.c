@@ -174,6 +174,7 @@ void trataComandos(ThreadData* td){
                 printf("[res] %d\n",res);
             }
         }
+        trataGuardarMensagens(td);
         write(td->pipeServer, "", sizeof("")); //só para destrancar o pipe na thread
     }
 
@@ -294,7 +295,9 @@ void *trataComandosCliente(void *td){
                     if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0 &&
                         strcmp(tdC->topicoTabela[i].mensagem,"-1") == 0) {
                         strcpy(tdC->topicoTabela[i].mensagem,msg.topico.mensagem);
+                        strcpy(tdC->topicoTabela[i].autor,msg.clienteDados.nome);
                         tdC->topicoTabela[i].duracao = msg.topico.duracao;
+
                         escreveuMsg = 1;
                         break;
                     }
@@ -307,6 +310,7 @@ void *trataComandosCliente(void *td){
                         if (strcmp(tdC->topicoTabela[j].mensagem,"-1") == 0) {
                             strcpy(tdC->topicoTabela[j].mensagem,msg.topico.mensagem);
                             tdC->topicoTabela[j].duracao = msg.topico.duracao;
+                            strcpy(tdC->topicoTabela[i].autor,msg.clienteDados.nome);
                             break;
                         }
                     }
@@ -365,6 +369,28 @@ void *trataComandosCliente(void *td){
 
     }
     
+}
+void trataGuardarMensagens(ThreadData *td){
+    int fd;
+    char duracao[30];
+    fd = open(FILENAME, O_WRONLY | O_CREAT);
+    if (fd == -1)
+        printf("[ERRO] ao abrir o ficheiro.");
+
+    for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
+        if (strcmp(td->topicoTabela[i].topico,"-1") != 0){
+            write(fd,td->topicoTabela[i].topico,strlen(td->topicoTabela[i].topico));
+            write(fd," ",1);
+            write(fd,td->topicoTabela[i].autor,strlen(td->topicoTabela[i].autor));
+            write(fd," ",1);
+            sprintf(duracao,"%d",td->topicoTabela[i].duracao);
+            write(fd, duracao,strlen(duracao));
+            write(fd," ",1);
+            write(fd,td->topicoTabela[i].mensagem,strlen(td->topicoTabela[i].mensagem));
+            write(fd,"\n",1);
+        }
+    }
+    close(fd);
 }
 void trataRemoverSubscriber(ThreadData *td, Mensagem *msg) {
     for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
