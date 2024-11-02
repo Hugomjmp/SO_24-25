@@ -181,13 +181,18 @@ void *trataMensagens(void *tfd_aux){
                 break;
             }
             case 1: {
-                printf("O topico encontra-se bloqueado pelo Administrador\n");
+                printf("O topico encontra-se bloqueado pelo Administrador.\n");
                 printf("Tente mais tarde.\n");
                 break;
             }
             case 2: {
                 printf("AQUIIIII.\n");
                 printf("%s\n",rsp.msgRsp);
+                break;
+            }
+            case 3: {
+                printf("Já existe um utilizador com este nome.\n");
+                tfd->continua = 0;
                 break;
             }
             //DIZ QUE HOUVE UM UTILIZADOR QUE FOI REMOVIDO

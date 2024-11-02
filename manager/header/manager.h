@@ -84,6 +84,10 @@ typedef struct
     int index;                                      //Auxiliar...
 }ThreadData;
 
+typedef struct {
+    int index;
+    ThreadData *TData;
+}ThreadData_extra;
 
 
 void Menu();
@@ -95,6 +99,7 @@ void mostraMensagens(ThreadData *td,const char* topics);
 void inicializaTabelaTopicos(ThreadData *td);
 void inicializaTabelaSubscricoes(ThreadData *td);
 void respostaTopicos(ThreadData *td, int pipeClienteResp);
+//void respostaTopicos(ThreadData_extra *extra, int pipeClienteResp);
 void inicializaPipes(ThreadData* td);
 void mostraEstados(ThreadData *td);
 void bloqueiaTopicos(ThreadData *td,const char* topics);
@@ -110,4 +115,5 @@ void trataLerMensagens(ThreadData *td);
 //threads
 void *trataClientes(void *cdp);
 void *trataComandosCliente(void *td);
+//void *trataComandosCliente(void *extra);
 void *trataTempoDeVida(void* td);
