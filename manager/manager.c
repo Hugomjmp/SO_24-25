@@ -188,10 +188,10 @@ void trataComandos(ThreadData* td){
             int res;
             for(int i = 0; i < MAX_USERS; i++) {
                 if (td->pipeCliente[i] != -1) { //só faz para os clientes ligados
-                    printf("PIPE DIZ %d",td->pipeCliente[i]);
-                    fflush(stdout);
+                    //printf("PIPE DIZ %d",td->pipeCliente[i]);
+                    //fflush(stdout);
                     res = write(td->pipeCliente[i], &rsp.tipoResposta,sizeof(rsp.tipoResposta));
-                    printf("[res] %d\n",res);
+                    //printf("[res] %d\n",res);
                 }
             }
             trataGuardarMensagens(td);
@@ -245,7 +245,6 @@ void mostraTabela(ThreadData *td) { //escondido do menu
     }
     pthread_mutex_unlock(td->mutex);
 }
-///FALTA METER A VERIFICAÇÃO DOS UTILIZADORES...
 void *trataClientes(void *tdp){
     ThreadData *td = (ThreadData*) tdp;
     ClienteDados cd[MAX_USERS];
@@ -295,39 +294,11 @@ void *trataClientes(void *tdp){
     }
 
 }
-/*void *trataClientes(void *tdp){
-    ThreadData *td = (ThreadData*) tdp;
-    ClienteDados cd[MAX_USERS];
-    ThreadData_extra extra[MAX_USERS];
-    int i = 0;
-    inicializaPipes(td);
-    while (td->continua == 1)
-    {
-
-        read(td->pipeServer, &cd[i], sizeof(ClienteDados));
-        //printf("RECEBI: '%s' com PID '%d' com pippe '%s'\n", cd[i].nome, cd[i].PID, cd[i].clientePipe);
-        fflush(stdout);
-        pthread_mutex_lock(td->mutex);
-
-        strcpy(td->cd[i].nome,cd[i].nome);                  //recebe o nome
-        td->cd[i].PID = cd[i].PID;                          //recebe o pid
-        strcpy(td->cd[i].clientePipe, cd[i].clientePipe);   // para aparecer na tabela depois
-        //extra[i].index = i;
-        td->index = i;                                      //index
-
-        pthread_create(&td->tid_Cliente[i], NULL, trataComandosCliente, (void *) td);
-        //pthread_create(&td->tid_Cliente[i], NULL, trataComandosCliente, (void *) extra);
-        pthread_mutex_unlock(td->mutex);
-        i++; // não esquecer que não pode passar do max_users
-    }
-    
-}*/
 void inicializaPipes(ThreadData* td) {
     for (int i = 0; i < MAX_USERS; i++) {
         td->pipeCliente[i] = -1;
     }
 }
-pthread_mutex_t mutexs = PTHREAD_MUTEX_INITIALIZER;
 void *trataComandosCliente(void *td_extra){
     ThreadData_extra *extra = (ThreadData_extra*) td_extra;
     ThreadData *tdC = extra->td;
@@ -339,26 +310,19 @@ void *trataComandosCliente(void *td_extra){
     char serverPipes[100];
     char resposta[460];
     int subscribe;
-    /*int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
-    if (pipe == -1) {
-        perror("Erro ao abrir o pipe do servidor");
-        pthread_exit(NULL);
-    }*/
-    int escreveuMsg;
 
-    //printf("%s",extra->td->cd[index].clientePipe);
+    int escreveuMsg;
 
     snprintf(serverPipes, sizeof(serverPipes), SERVER_PIPECLIENTE"_%d", extra->td->cd[index].PID);
     printf("[SERVER PIPE]:%s\n", serverPipes);
-    tdC->pipeServerCliente[index] = mkfifo(serverPipes, 0666);
+    mkfifo(serverPipes, 0666);
 
     int pipe = open(serverPipes, O_RDONLY);
     if (pipe == -1) {
         perror("Erro ao abrir o pipe do servidor");
         pthread_exit(NULL);
     }
-    //printf("SERVER_PIPECLIENTE: %d\n",pipe);
-    //printf("PIPE CLIENTE: %d\n",tdC->pipeCliente[index]);
+    tdC->pipeServerCliente[index] = pipe;
     sleep(1);
 
     const int pipeClienteResp = open(tdC->cd[index].clientePipe, O_WRONLY);
@@ -380,15 +344,11 @@ void *trataComandosCliente(void *td_extra){
         if (!read(pipe, &msg, sizeof(Mensagem))) {
             break;
         }//recebe as mensagens de comando
-        printf("[CLIENTE] %s\n",msg.tipoMSG);
+
         fflush(stdout);
         //TRATA DO COMANDO TOPICS DO CLIENTEe
         if (strcmp("topics",msg.tipoMSG) == 0)
         {
-            printf("PIPE CLIENTE2: %d\n",tdC->pipeCliente[index]);
-            //rsp.tipoResposta = 2;
-            //strcpy(rsp.msgRsp, "OKAY");
-            //write(pipeClienteResp,&rsp,sizeof(Resposta));
             respostaTopicos(tdC, pipeClienteResp);
         }
 
@@ -473,16 +433,15 @@ void *trataComandosCliente(void *td_extra){
         }
 
         //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
-        else if (strcmp("subscribe",msg.tipoMSG)==0) //rever isto...
+        else if (strcmp("subscribe",msg.tipoMSG)==0)
         {
             trataCriarSubscriber(tdC, &msg);
-            //printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
         }
         //TRATA DO COMANDO UNSUBSCRIBE DO CLIENTE
         else if (strcmp("unsubscribe",msg.tipoMSG)==0)
         {
             trataRemoverSubscriber(tdC,&msg);
-            //printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
+
         }
         //TRATA DO COMANDO EXIT DO CLIENTE
         else if (strcmp("exit",msg.tipoMSG) == 0)
@@ -490,158 +449,15 @@ void *trataComandosCliente(void *td_extra){
             printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
             rsp.tipoResposta = 99;
             write(pipeClienteResp,&rsp,sizeof(Resposta));
+            close(pipe);
+            unlink(serverPipes);
             break;
-            //tenho de retirar o cliente depois aqui se não fica em loop
-            //e informar os outros utilizadores
+
         }
     }
-
+    pthread_exit(NULL);
 }
 
-/*void *trataComandosCliente(void *td){
-    ThreadData *tdC = (ThreadData*) td;
-    Mensagem msg;
-    Resposta rsp;
-
-    int nMsg = 0;
-    char resposta[460];
-    int subscribe;
-    int pipe = open(SERVER_PIPECLIENTE, O_RDONLY);
-    int escreveuMsg;
-
-    //int pipeCliente = open();
-    int index = tdC->index;
-
-    printf("PIPE CLIENTE: %s\n",tdC->cd[index].clientePipe);
-    sleep(1);
-    int pipeClienteResp = open(tdC->cd[index].clientePipe, O_WRONLY);
-    tdC->pipeCliente[index] = pipeClienteResp;
-    printf("FD DO PIPE_CLIENTE = %d\n", pipeClienteResp);
-    fflush(stdout);
-    while (tdC->continua == 1)
-    {
-        //printf("\nCHEGUEI ao READ\n");
-        escreveuMsg = 0;
-        subscribe = 0;
-        for (int i = 0; i < MAX_USERS; i++) {
-            printf("pipes %d\n", tdC->pipeCliente[i]);
-        }
-
-
-        read(pipe, &msg, sizeof(Mensagem)); //recebe as mensagens de comando
-        //printf("THREAD TRATACOMANDOS: %s\n", msg.tipoMSG);
-        fflush(stdout);
-        //TRATA DO COMANDO TOPICS DO CLIENTE
-        if (strcmp("topics",msg.tipoMSG) == 0)
-        {
-            printf("[INDEX] %d\n",index);
-            respostaTopicos(tdC, pipeClienteResp);
-        }
-        //TRATA DO COMANDO MSG DO CLIENTE
-        else if (strcmp("msg",msg.tipoMSG)==0) {
-            printf("[RECEBI DO CLIENTE TIPO] %s\n",msg.tipoMSG);
-            printf("[RECEBI DO CLIENTE NOMETOPIC] %s\n",msg.topico.topico);
-            printf("[RECEBI DO CLIENTE DURACAO] %d\n",msg.topico.duracao);
-            printf("[RECEBI DO CLIENTE MENSAGEM] %s\n",msg.topico.mensagem);
-
-            pthread_mutex_lock(tdC->mutex);
-            for (int i = 0; i < MAX_LINHAS_TOPICOS; i++) {
-                // para a primeira vez...
-                if (strcmp(tdC->topicoTabela[i].topico,"-1") == 0 && escreveuMsg == 0){
-                    for (int j = i; j < i+5; j++) {
-                        strcpy(tdC->topicoTabela[j].topico,msg.topico.topico);
-                    }
-                    if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0)
-                        tdC->topicoTabela[i].nMensagem++; //incremento nMensages
-                    if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0 &&
-                        strcmp(tdC->topicoTabela[i].mensagem,"-1") == 0) {
-                        strcpy(tdC->topicoTabela[i].mensagem,msg.topico.mensagem);
-                        strcpy(tdC->topicoTabela[i].autor,msg.clienteDados.nome);
-                        tdC->topicoTabela[i].duracao = msg.topico.duracao;
-                        escreveuMsg = 1;
-                        //break;
-                    }
-                }
-                // faz a segunda, terceira.... vez
-                if (strcmp(tdC->topicoTabela[i].topico,msg.topico.topico) == 0
-                    && escreveuMsg == 0) {
-                    if (tdC->topicoTabela[i].estados == 1) {
-                        for(int k = 0; k < MAX_USERS; k++) {
-                            if(strcmp(tdC->cd[k].nome, msg.clienteDados.nome) == 0) {
-                                rsp.tipoResposta = 1;
-                                int fd = open(tdC->cd[k].clientePipe, O_WRONLY);
-                                write(fd,&rsp,sizeof(Resposta));
-                                close(fd);
-                            }
-                        }
-                        break;
-                    }
-                    //printf("CHEGUEI AQUI!\n");
-                    //fflush(stdout);
-                    tdC->topicoTabela[i].nMensagem++; //ver isto
-                    for (int j = i; j < i + 5; j++) {
-                        if (strcmp(tdC->topicoTabela[j].mensagem,"-1") == 0) {
-                            strcpy(tdC->topicoTabela[j].mensagem,msg.topico.mensagem);
-                            tdC->topicoTabela[j].duracao = msg.topico.duracao;
-                            strcpy(tdC->topicoTabela[j].autor,msg.clienteDados.nome);
-                            break;
-                        }
-                    }
-                    //strcpy(tdC->topicoTabela[i+1].mensagem,msg.topico.mensagem);
-                    tdC->topicoTabela[i+1].duracao = msg.topico.duracao;
-                    for (int z = 0; z < MAX_LINHAS_TOPICOS; z++) {
-                        if( strcmp(tdC->sub[z].topico,"-1") != 0 &&
-                            strcmp(tdC->sub[z].topico,msg.topico.topico) == 0) {
-                            printf("TOPICO ENCONTRADO: %s\n", tdC->sub[i].topico);
-                            for(int k = 0; k < MAX_USERS; k++) {
-                                if (strcmp(tdC->cd[k].nome,tdC->sub[z].userSubscrito) == 0){
-                                    printf("NOME: %s\n",tdC->cd[k].nome);
-                                    int fd = open(tdC->cd[k].clientePipe, O_WRONLY);
-                                    rsp.tipoResposta = 2;
-                                    sprintf(resposta, "Mensagem nova: %s no topico: %s, por: %s",
-                                        msg.topico.mensagem,msg.topico.topico, msg.clienteDados.nome);
-                                    strcpy(rsp.msgRsp,resposta);
-                                    printf("%s\n",rsp.msgRsp);
-                                    write(fd,&rsp,sizeof(Resposta));
-                                    close(fd);
-                                }
-                            }
-                            //break;
-                        }
-                    }
-                    escreveuMsg = 1;
-                    break;
-                }
-
-            }
-            pthread_mutex_unlock(tdC->mutex);
-        }
-
-        //TRATA DO COMANDO SUBSCRIBE DO CLIENTE
-        else if (strcmp("subscribe",msg.tipoMSG)==0) //rever isto...
-        {
-            trataCriarSubscriber(tdC, &msg);
-
-
-            //printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-        }
-        //TRATA DO COMANDO UNSUBSCRIBE DO CLIENTE
-        else if (strcmp("unsubscribe",msg.tipoMSG)==0)
-        {
-            trataRemoverSubscriber(tdC,&msg);
-            //printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-        }
-        //TRATA DO COMANDO EXIT DO CLIENTE
-        else if (strcmp("exit",msg.tipoMSG) == 0)
-        {
-            printf("[RECEBI DO CLIENTE] %s\n",msg.tipoMSG);
-            //tenho de retirar o cliente depois aqui se não fica em loop
-            //e informar os outros utilizadores
-        }
-
-    }
-    
-}*/
 void criaVariavelAmbiente() {
     if (putenv("MSG_FICH=../mensagens.txt") != 0) {
         printf("[ERRO] Erro ao criar variavel de ambiente.\n");
