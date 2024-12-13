@@ -1,9 +1,10 @@
 #include "./header/feed.h"
 
+int continua = 1;
 
 int main (int argc, char* args[]){
     int serverPipe, serverPipeCliente,clientePipe;
-    char nomePipe[100];
+    char nomePipe[100], serverPipes[100];
     ClienteDados cd;
     ThreadFeedData tfd;
     pthread_t tid_recebeMensagens, tid_recebeFecho;
@@ -30,9 +31,18 @@ int main (int argc, char* args[]){
     strcpy(tfd.nomePipe,nomePipe);
     write(serverPipe, &cd, sizeof(ClienteDados)); // envia os dados do feed para o manager
 
-    
-    serverPipeCliente = open(SERVER_PIPECLIENTE, O_WRONLY);
+
+    snprintf(serverPipes, sizeof(serverPipes), SERVER_PIPECLIENTE"_%d", cd.PID);
+    printf("[serverPipes]:%s \n", serverPipes);
+    sleep(2);
+    serverPipeCliente = open(serverPipes, O_WRONLY);
+    if (serverPipeCliente == -1) {
+        perror("Erro ao abrir o pipe");
+    }
+    printf("PIPESERVER DESCRITOR: %d\n",serverPipeCliente);
     tfd.pipeServerCliente = serverPipeCliente;
+    /*serverPipeCliente = open(SERVER_PIPECLIENTE, O_WRONLY);
+    tfd.pipeServerCliente = serverPipeCliente;*/
     
     mkfifo(nomePipe, 0666); //cria um pipe para cada cliente
     tfd.clientePipe = open(nomePipe, O_RDWR);
@@ -42,8 +52,8 @@ int main (int argc, char* args[]){
     //tfd.clientePipe = open(nomePipe, O_RDONLY);
     pthread_create(&tid_recebeMensagens,NULL,trataMensagens,(void *) &tfd);
 
-    tfd.continua = 1;
-    while(tfd.continua == 1)
+    //tfd.continua = 1;
+    while(/*tfd.continua*/continua == 1)
     {
         Menu();
         trataComandos(&tfd);
@@ -63,100 +73,104 @@ void trataComandos(ThreadFeedData *tfd){
     char comando[100], topico[100], duracao[10], mensagem[MAX_CARACTER_MENSAGEM];
     Mensagem msg;
     int estadoOkay = 1;
+    printf("#> ");
     fgets(comando, sizeof(comando), stdin);
     comando[strcspn(comando, "\n")] = 0; //para remover a quebra de linha
-    char *resultado = strtok(comando, " "); //para separar as palavras
-    strcpy(comando, resultado);
-    printf("CMD = '%s'\n", comando);
+    if (comando[0] != '\0') {
+        char *resultado = strtok(comando, " "); //para separar as palavras
+        strcpy(comando, resultado);
+        printf("CMD = '%s'\n", comando);
 
-    if (strcmp(comando,"topics") == 0){ //trata do comando topics
-        printf("A enviar o comando topics...\n");
-        strcpy(msg.tipoMSG, comando);
-        printf("FD = %d\n",tfd->pipeServerCliente);
+        if (strcmp(comando,"topics") == 0){ //trata do comando topics
+            printf("A enviar o comando topics...\n");
+            strcpy(msg.tipoMSG, comando);
+            printf("FD = %d\n",tfd->pipeServerCliente);
+            printf("'%s'\n",msg.clienteDados.nome);
+            write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
 
-        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+            //printf("[RECEBI] %s\n",comando);
+        }else if(strncmp(comando,"msg", strlen("msg")) == 0){ //trata do comando msg
 
-        //printf("[RECEBI] %s\n",comando);
-    }else if(strncmp(comando,"msg", strlen("msg")) == 0){ //trata do comando msg
+            strcpy(topico, "");
+            strcpy(duracao, "");
+            strcpy(mensagem, "");
 
-        strcpy(topico, "");
-        strcpy(duracao, "");
-        strcpy(mensagem, "");
-
-        //estrair topico
-        resultado = strtok(NULL, " ");
-        if(resultado != NULL) {
-            strcpy(topico, resultado);
-        }
-        //estrair duracao
-        resultado = strtok(NULL, " ");
-        if(resultado != NULL) {
-            strcpy(duracao, resultado);
-        }
-        printf("%d",estadoOkay);
-        //estrair mensagem
-        resultado = strtok(NULL, "");
-        if(resultado != NULL) {
-            strcpy(mensagem, resultado);
-        }
+            //estrair topico
+            resultado = strtok(NULL, " ");
+            if(resultado != NULL) {
+                strcpy(topico, resultado);
+            }
+            //estrair duracao
+            resultado = strtok(NULL, " ");
+            if(resultado != NULL) {
+                strcpy(duracao, resultado);
+            }
+            printf("%d",estadoOkay);
+            //estrair mensagem
+            resultado = strtok(NULL, "");
+            if(resultado != NULL) {
+                strcpy(mensagem, resultado);
+            }
 
             strcpy(msg.tipoMSG, comando);
             strcpy(msg.topico.topico,topico);
             strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
             msg.topico.duracao = atoi(duracao);
 
-        /*if(msg.topico.duracao > 0) {
-            estadoOkay = 1;
-        }
-        else {
-            printf("A duração tem de ser um inteiro.\n");
-            estadoOkay = 0;
-        }*/
+            /*if(msg.topico.duracao > 0) {
+                estadoOkay = 1;
+            }
+            else {
+                printf("A duração tem de ser um inteiro.\n");
+                estadoOkay = 0;
+            }*/
             strcpy(msg.topico.mensagem,mensagem);
             printf("[CLIENTE] %s",msg.clienteDados.nome);
-        /*if(estadoOkay == 1) {*/
+            /*if(estadoOkay == 1) {*/
             write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
-        //}
+            //}
 
 
 
-        //printf("[RECEBI] %s\n",comando);
-    }else if(strncmp(comando,"subscribe", strlen("subscribe")) == 0){ //trata do comando subscribe
-        strcpy(topico, "");
-        strcpy(mensagem, "");
+            //printf("[RECEBI] %s\n",comando);
+        }else if(strncmp(comando,"subscribe", strlen("subscribe")) == 0){ //trata do comando subscribe
+            strcpy(topico, "");
+            strcpy(mensagem, "");
 
 
-        strcpy(msg.tipoMSG, comando);
-        //estrair topico
-        resultado = strtok(NULL, " ");
-        if(resultado != NULL) {
-            strcpy(topico, resultado);
+            strcpy(msg.tipoMSG, comando);
+            //estrair topico
+            resultado = strtok(NULL, " ");
+            if(resultado != NULL) {
+                strcpy(topico, resultado);
+            }
+            strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
+            strcpy(msg.topico.topico,topico);
+            write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+            //printf("[RECEBI] %s\n",comando);
+        }else if(strcmp(comando,"unsubscribe") == 0){ //trata do comando unsubscribe
+            strcpy(msg.tipoMSG, comando);
+
+            //estrair topico
+            resultado = strtok(NULL, " ");
+            if(resultado != NULL) {
+                strcpy(topico, resultado);
+            }
+
+            strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
+            strcpy(msg.topico.topico,topico);
+
+            write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+            printf("[RECEBI] %s\n",comando);
+        }else if(strcmp(comando,"exit") == 0){ //trata do comando exit
+            strcpy(msg.tipoMSG, comando);
+            write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
+            printf("[RECEBI] %s\n",comando);
+            continua = 0;
+            /*tfd->continua = 0;*/
+        } else {
+            printf("NADA!!!\n");
         }
-        strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
-        strcpy(msg.topico.topico,topico);
-        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
-        //printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"unsubscribe") == 0){ //trata do comando unsubscribe
-        strcpy(msg.tipoMSG, comando);
-
-        //estrair topico
-        resultado = strtok(NULL, " ");
-        if(resultado != NULL) {
-            strcpy(topico, resultado);
-        }
-
-        strcpy(msg.clienteDados.nome, tfd->clienteDados.nome);
-        strcpy(msg.topico.topico,topico);
-
-        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
-        printf("[RECEBI] %s\n",comando);
-    }else if(strcmp(comando,"exit") == 0){ //trata do comando exit
-        strcpy(msg.tipoMSG, comando);
-        write(tfd->pipeServerCliente, &msg, sizeof(Mensagem));
-        printf("[RECEBI] %s\n",comando);
-        tfd->continua = 0;
-    } else {
-       printf("NADA!!!\n");
     }
 }
 
@@ -167,7 +181,7 @@ void *trataMensagens(void *tfd_aux){
     ClienteDados cd;
     Resposta rsp;
     //incializaTabelaTopicosFeed(&rsp);
-    while (tfd->continua == 1)
+    while (/*tfd->continua*/continua == 1)
     {
         printf("FD DO PIPE_CLIENTE = %d\n", tfd->clientePipe);
         read(tfd->clientePipe, &rsp, sizeof(Resposta));
@@ -192,7 +206,8 @@ void *trataMensagens(void *tfd_aux){
             }
             case 3: {
                 printf("Já existe um utilizador com este nome.\n");
-                tfd->continua = 0;
+                continua = 0;
+                /*tfd->continua = 0;*/
                 break;
             }
             //DIZ QUE HOUVE UM UTILIZADOR QUE FOI REMOVIDO
@@ -203,10 +218,10 @@ void *trataMensagens(void *tfd_aux){
             //MANDA DESLIGAR O CLIENTE
             case 99: {
 
-
                 printf("Servidor foi offline...\n");
                 printf("A sair....\n");
-                tfd->continua = 0;
+                //tfd->continua = 0;
+                continua=0;
                 break;
             }
         }

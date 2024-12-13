@@ -8,9 +8,6 @@
 #include <pthread.h>
 #include <signal.h>
 
-
-
-
 //defines
 #define MAX_TOPICOS 20
 #define MAX_MSG_PERSISTENTES 5
@@ -72,6 +69,9 @@ typedef struct
     char msgRsp[460];
 }Resposta;
 
+typedef struct {
+    int id;
+}ID;
 
 void *trataMensagens(void *tfd_aux);
 void *trataFecho(void *tfd);
